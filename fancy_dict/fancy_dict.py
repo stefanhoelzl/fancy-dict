@@ -1,4 +1,9 @@
 class FancyDict(dict):
+    def __init__(self, __dct=None, **kwargs):
+        super().__init__()
+        self.update(__dct)
+        self.update(kwargs)
+
     def __setitem__(self, key, value):
         if isinstance(value, dict):
             super().__setitem__(key, FancyDict(value))
@@ -15,8 +20,7 @@ class FancyDict(dict):
         for k, v in dct.items():
             self._update_value(k, v)
 
-    def update(self, dct=None, **kwargs):
-        if dct is not None:
-            self._update_from_dict(dct)
-        if kwargs:
-            self.update(kwargs)
+    def update(self, __dct=None, **kwargs):
+        if isinstance(__dct, dict):
+            self._update_from_dict(__dct)
+        self._update_from_dict(kwargs)
