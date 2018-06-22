@@ -1,4 +1,10 @@
 class FancyDict(dict):
+    def __setitem__(self, key, value):
+        if isinstance(value, dict):
+            super().__setitem__(key, FancyDict(value))
+        else:
+            super().__setitem__(key, value)
+
     def _update_value(self, key, value):
         if isinstance(self.get(key), dict) and isinstance(value, dict):
             self[key].update(value)

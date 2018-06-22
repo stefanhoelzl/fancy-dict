@@ -30,3 +30,10 @@ class TestUpdate:
         base_dict = FancyDict({})
         base_dict.update(key=1)
         assert {"key": 1} == base_dict
+
+
+class TestSetItem:
+    def test_convert_dict_to_fancy_dict(self):
+        fancy_dict = FancyDict()
+        fancy_dict["dict"] = {"key": "value"}
+        assert isinstance(fancy_dict["dict"], FancyDict)
