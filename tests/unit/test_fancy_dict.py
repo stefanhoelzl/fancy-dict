@@ -2,20 +2,31 @@ import pytest
 
 from fancy_dict import FancyDict
 from errors import NoValidMergeStrategyFound
-from merger import MergeStrategy, add
+from merger import MergeStrategy, add, update
 
 
 class TestUsingStrategies:
     def test_use_given_strategies(self):
-        fancy_dict = FancyDict.using_strategies(
-            MergeStrategy(add)
-        )
+        fancy_dict = FancyDict.using_strategies(MergeStrategy(add))
         fancy_dict["counter"] = 1
         fancy_dict.update(counter=1)
         assert 2 == fancy_dict["counter"]
 
     def test_init_with_dict(self):
         assert {"a": 1} == FancyDict.using_strategies(init_with={"a": 1})
+
+
+class TestDeriveFrom:
+    def test_copy_strategies(self):
+        base_fancy_dict = FancyDict.using_strategies(MergeStrategy(add))
+        derived_fancy_dict = FancyDict.derive_from(base_fancy_dict,
+                                                   init_with={"counter": 1})
+        derived_fancy_dict.update(counter=1)
+        assert 2 == derived_fancy_dict["counter"]
+
+    def test_init_with_dict(self):
+        fancy_dict = FancyDict.derive_from(FancyDict(), init_with={"a": 1})
+        assert {"a": 1} == fancy_dict
 
 
 class TestInit:
@@ -90,3 +101,10 @@ class TestSetItem:
         fancy_dict = FancyDict()
         fancy_dict["dict"] = {"key": "value"}
         assert isinstance(fancy_dict["dict"], FancyDict)
+
+    def test_use_same_strategies_when_converting_dict(self):
+        fancy_dict = FancyDict()
+        fancy_dict.add_strategy(MergeStrategy(add, from_types=int))
+        fancy_dict["counters"] = {"a": 1}
+        fancy_dict.update(counters={"a": 1})
+        assert 2 == fancy_dict["counters"]["a"]
