@@ -1,16 +1,25 @@
 from fancy_dict import merger
-
-
-DEFAULT_MERGE_STRATEGIES = (
-    merger.MergeStrategy(merger.overwrite),
-    merger.MergeStrategy(merger.update, from_types=(dict,), to_types=(dict,)),
-)
+from errors import NoValidMergeStrategyFound
 
 
 class FancyDict(dict):
+    @staticmethod
+    def default_merge_strategies():
+        return [
+            merger.MergeStrategy(merger.overwrite),
+            merger.MergeStrategy(merger.update,
+                                 from_types=(dict,), to_types=(dict,)),
+        ]
+
+    @classmethod
+    def using_strategies(cls, *strategies):
+        fancy_dict = cls()
+        fancy_dict._strategies = list(strategies)
+        return fancy_dict
+
     def __init__(self, __dct=None, **kwargs):
         super().__init__()
-        self._strategies = list(DEFAULT_MERGE_STRATEGIES)
+        self._strategies = self.default_merge_strategies()
         self.update(__dct)
         self.update(kwargs)
 
@@ -28,6 +37,7 @@ class FancyDict(dict):
             if strategy.can_merge(key, old_value, new_value):
                 self[key] = strategy.method(old_value, new_value)
                 return
+        raise NoValidMergeStrategyFound(key, old_value, new_value)
 
     def _update_with_dict(self, dct):
         for k, v in dct.items():

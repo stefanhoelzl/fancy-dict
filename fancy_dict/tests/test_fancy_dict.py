@@ -1,5 +1,18 @@
+import pytest
+
 from fancy_dict import FancyDict
+from errors import NoValidMergeStrategyFound
 from merger import MergeStrategy, add
+
+
+class TestUsingStrategies:
+    def test_use_given_strategies(self):
+        fancy_dict = FancyDict.using_strategies(
+            MergeStrategy(add)
+        )
+        fancy_dict["counter"] = 1
+        fancy_dict.update(counter=1)
+        assert fancy_dict["counter"] == 2
 
 
 class TestInit:
@@ -51,6 +64,14 @@ class TestUpdate:
         base_dict = FancyDict({})
         base_dict.update(key=1)
         assert {"key": 1} == base_dict
+
+    def test_raise_if_no_valid_strategy(self):
+        fancy_dict = FancyDict.using_strategies()
+        with pytest.raises(NoValidMergeStrategyFound) as e:
+            fancy_dict.update(val=1)
+        assert "val" == e.value.key
+        assert e.value.old_value is None
+        assert 1 == e.value.new_value
 
 
 class TestSetItem:
