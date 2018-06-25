@@ -1,3 +1,7 @@
 venv
 .idea
 .pytest_cache
+build
+dist
+fancy_dict.egg-info
+docs/_build

@@ -1,4 +1,4 @@
-from merger import *
+from fancy_dict.merger import *
 
 
 class TestCanMerge:

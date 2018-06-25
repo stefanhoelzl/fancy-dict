@@ -1,8 +1,8 @@
 import pytest
 
 from fancy_dict import FancyDict
-from errors import NoValidMergeStrategyFound
-from merger import MergeStrategy, add
+from fancy_dict.errors import NoValidMergeStrategyFound
+from fancy_dict.merger import MergeStrategy, add
 
 
 class TestUsingStrategies:

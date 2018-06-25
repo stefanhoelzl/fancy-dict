@@ -1,9 +1,9 @@
 from collections import defaultdict
 
-from fancy_dict import merger
-from errors import NoValidMergeStrategyFound
-from conditions import always
-from query_engine import QueryEngine
+from . import merger
+from .errors import NoValidMergeStrategyFound
+from .conditions import always
+from .query_engine import QueryEngine
 
 
 class FancyDict(dict):
