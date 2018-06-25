@@ -1,8 +1,15 @@
+from collections import defaultdict
+
 from fancy_dict import merger
 from errors import NoValidMergeStrategyFound
+from conditions import always
 
 
 class FancyDict(dict):
+    @staticmethod
+    def default_condition():
+        return always
+
     @staticmethod
     def default_merge_strategies():
         return [
@@ -16,16 +23,11 @@ class FancyDict(dict):
         fancy_dict._strategies = list(strategies)
         return fancy_dict
 
-    @classmethod
-    def derive_from(cls, base, init_with=None):
-        fancy_dict = cls(init_with)
-        fancy_dict._strategies = base.strategies
-        return fancy_dict
-
     def __init__(self, __dct=None, **kwargs):
         super().__init__()
         self._strategies = self.default_merge_strategies()
         self._finalized_keys = []
+        self._conditions = defaultdict(self.default_condition)
         self.update(__dct)
         self.update(kwargs)
 
@@ -33,8 +35,15 @@ class FancyDict(dict):
     def strategies(self):
         return self._strategies
 
+    def derive(self, init_with=None):
+        return type(self).using_strategies(*self.strategies,
+                                           init_with=init_with)
+
     def add_strategy(self, strategy):
         self._strategies.append(strategy)
+
+    def add_condition(self, key, condition):
+        self._conditions[key] = condition
 
     def finalize(self, key):
         self._finalized_keys.append(key)
@@ -42,8 +51,13 @@ class FancyDict(dict):
     def __setitem__(self, key, value):
         if key not in self._finalized_keys:
             if isinstance(value, dict):
-                value = type(self).derive_from(self, init_with=value)
+                value = self.derive(init_with=value)
             super().__setitem__(key, value)
+
+    def update(self, __dct=None, **kwargs):
+        if isinstance(__dct, dict):
+            self._update_with_dict(__dct)
+        self._update_with_dict(kwargs)
 
     def _update_value(self, key, new_value, strategies=None):
         strategies = strategies if strategies is not None else self.strategies
@@ -59,9 +73,10 @@ class FancyDict(dict):
         if isinstance(dct, FancyDict):
             strategies = dct.strategies
         for k, v in dct.items():
-            self._update_value(k, v, strategies)
+            if self._check_condition(dct, k):
+                self._update_value(k, v, strategies)
 
-    def update(self, __dct=None, **kwargs):
-        if isinstance(__dct, dict):
-            self._update_with_dict(__dct)
-        self._update_with_dict(kwargs)
+    def _check_condition(self, dct, key):
+        if isinstance(dct, FancyDict):
+            return dct._conditions[key](self.get(key), dct.get(key))
+        return True
