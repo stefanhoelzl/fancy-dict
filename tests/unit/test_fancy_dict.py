@@ -14,6 +14,9 @@ class TestUsingStrategies:
         fancy_dict.update(counter=1)
         assert fancy_dict["counter"] == 2
 
+    def test_init_with_dict(self):
+        assert {"a": 1} == FancyDict.using_strategies(init_with={"a": 1})
+
 
 class TestInit:
     def test_with_dict(self):

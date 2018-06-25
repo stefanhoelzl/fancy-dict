@@ -12,8 +12,8 @@ class FancyDict(dict):
         ]
 
     @classmethod
-    def using_strategies(cls, *strategies):
-        fancy_dict = cls()
+    def using_strategies(cls, *strategies, init_with=None):
+        fancy_dict = cls(init_with)
         fancy_dict._strategies = list(strategies)
         return fancy_dict
 
