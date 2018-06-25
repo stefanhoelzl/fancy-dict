@@ -12,7 +12,7 @@ class TestUsingStrategies:
         )
         fancy_dict["counter"] = 1
         fancy_dict.update(counter=1)
-        assert fancy_dict["counter"] == 2
+        assert 2 == fancy_dict["counter"]
 
     def test_init_with_dict(self):
         assert {"a": 1} == FancyDict.using_strategies(init_with={"a": 1})
@@ -20,10 +20,10 @@ class TestUsingStrategies:
 
 class TestInit:
     def test_with_dict(self):
-        assert FancyDict({"a": 1}) == {"a": 1}
+        assert {"a": 1} == FancyDict({"a": 1})
 
     def test_with_keywords(self):
-        assert FancyDict(a=1) == {"a": 1}
+        assert {"a": 1} == FancyDict(a=1)
 
     def test_convert_nested_dict_to_fancy_dict(self):
         assert isinstance(FancyDict(dct={"sub": 1})["dct"], FancyDict)
@@ -35,7 +35,7 @@ class TestAddStrategy:
         fancy_dict["counter"] = 1
         fancy_dict.add_strategy(MergeStrategy(add, key="counter"))
         fancy_dict.update(counter=1)
-        assert fancy_dict["counter"] == 2
+        assert 2 == fancy_dict["counter"]
 
 
 class TestUpdate:
@@ -75,6 +75,14 @@ class TestUpdate:
         assert "val" == e.value.key
         assert e.value.old_value is None
         assert 1 == e.value.new_value
+
+    def test_use_strategy_of_new_fancy_dict(self):
+        base_fancy_dict = FancyDict(counter=1)
+        update_fancy_dict = FancyDict.using_strategies(
+            MergeStrategy(add), init_with={"counter": 1}
+        )
+        base_fancy_dict.update(update_fancy_dict)
+        assert 2 == base_fancy_dict["counter"]
 
 
 class TestSetItem:

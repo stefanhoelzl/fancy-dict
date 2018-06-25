@@ -31,17 +31,21 @@ class FancyDict(dict):
             value = FancyDict(value)
         super().__setitem__(key, value)
 
-    def _update_value(self, key, new_value):
+    def _update_value(self, key, new_value, strategies=None):
+        strategies = strategies if strategies is not None else self._strategies
         old_value = self.get(key, None)
-        for strategy in reversed(self._strategies):
+        for strategy in reversed(strategies):
             if strategy.can_merge(key, old_value, new_value):
                 self[key] = strategy.method(old_value, new_value)
                 return
         raise NoValidMergeStrategyFound(key, old_value, new_value)
 
     def _update_with_dict(self, dct):
+        strategies = None
+        if isinstance(dct, FancyDict):
+            strategies = dct._strategies
         for k, v in dct.items():
-            self._update_value(k, v)
+            self._update_value(k, v, strategies)
 
     def update(self, __dct=None, **kwargs):
         if isinstance(__dct, dict):
