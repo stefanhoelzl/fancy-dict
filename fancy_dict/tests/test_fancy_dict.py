@@ -1,4 +1,4 @@
-from ..fancy_dict import FancyDict
+from fancy_dict import FancyDict
 
 
 class TestInit:
