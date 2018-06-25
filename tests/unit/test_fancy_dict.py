@@ -2,7 +2,7 @@ import pytest
 
 from fancy_dict import FancyDict
 from errors import NoValidMergeStrategyFound
-from merger import MergeStrategy, add, update
+from merger import MergeStrategy, add
 
 
 class TestUsingStrategies:
@@ -94,6 +94,14 @@ class TestUpdate:
         )
         base_fancy_dict.update(update_fancy_dict)
         assert 2 == base_fancy_dict["counter"]
+
+
+class TestFinalize:
+    def test_dont_change_value_if_locked(self):
+        fancy_dict = FancyDict(locked=1)
+        fancy_dict.finalize("locked")
+        fancy_dict["locked"] = 2
+        assert 1 == fancy_dict["locked"]
 
 
 class TestSetItem:

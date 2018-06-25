@@ -7,8 +7,7 @@ class FancyDict(dict):
     def default_merge_strategies():
         return [
             merger.MergeStrategy(merger.overwrite),
-            merger.MergeStrategy(merger.update,
-                                 from_types=(dict,), to_types=(dict,)),
+            merger.MergeStrategy(merger.update, from_types=dict, to_types=dict),
         ]
 
     @classmethod
@@ -26,6 +25,7 @@ class FancyDict(dict):
     def __init__(self, __dct=None, **kwargs):
         super().__init__()
         self._strategies = self.default_merge_strategies()
+        self._finalized_keys = []
         self.update(__dct)
         self.update(kwargs)
 
@@ -36,10 +36,14 @@ class FancyDict(dict):
     def add_strategy(self, strategy):
         self._strategies.append(strategy)
 
+    def finalize(self, key):
+        self._finalized_keys.append(key)
+
     def __setitem__(self, key, value):
-        if isinstance(value, dict):
-            value = type(self).derive_from(self, init_with=value)
-        super().__setitem__(key, value)
+        if key not in self._finalized_keys:
+            if isinstance(value, dict):
+                value = type(self).derive_from(self, init_with=value)
+            super().__setitem__(key, value)
 
     def _update_value(self, key, new_value, strategies=None):
         strategies = strategies if strategies is not None else self.strategies
