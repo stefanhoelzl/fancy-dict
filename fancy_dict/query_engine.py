@@ -65,7 +65,7 @@ class QueryBuilder:
 class StringQueryBuilder(QueryBuilder):
     def __init__(self, query_string,
                  separator=".",
-                 indexing="^(?P<key>.*)\[(?P<index>[0-9-:]*)\]$",
+                 indexing=r"^(?P<key>.*)\[(?P<index>[0-9-:]*)\]$",
                  match_all="*"):
         super().__init__()
         self._separator = separator

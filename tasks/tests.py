@@ -2,8 +2,18 @@ from invoke import task, Collection
 
 
 @task(default=True)
-def unit(ctx):
+def all(ctx):
     ctx.run("PYTHONPATH=. pytest tests", pty=True)
 
 
-ns = Collection(unit)
+@task
+def unit(ctx):
+    ctx.run("PYTHONPATH=. pytest tests/unit", pty=True)
+
+
+@task
+def lint(ctx):
+    ctx.run("PYTHONPATH=. pytest tests/lint", pty=True)
+
+
+ns = Collection(unit, lint, all)

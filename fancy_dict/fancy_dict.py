@@ -19,7 +19,8 @@ class FancyDict(dict):
     def default_merge_strategies():
         return [
             merger.MergeStrategy(merger.overwrite),
-            merger.MergeStrategy(merger.update, from_types=dict, to_types=dict),
+            merger.MergeStrategy(merger.update,
+                                 from_types=dict, to_types=dict),
         ]
 
     @classmethod
