@@ -1,4 +1,5 @@
 from fancy_dict import FancyDict
+from merger import MergeStrategy, add
 
 
 class TestInit:
@@ -10,6 +11,15 @@ class TestInit:
 
     def test_convert_nested_dict_to_fancy_dict(self):
         assert isinstance(FancyDict(dct={"sub": 1})["dct"], FancyDict)
+
+
+class TestAddStrategy:
+    def test_add_and_use_new_strategy(self):
+        fancy_dict = FancyDict()
+        fancy_dict["counter"] = 1
+        fancy_dict.add_strategy(MergeStrategy(add, key="counter"))
+        fancy_dict.update(counter=1)
+        assert fancy_dict["counter"] == 2
 
 
 class TestUpdate:

@@ -1,16 +1,21 @@
 from fancy_dict import merger
 
 
+DEFAULT_MERGE_STRATEGIES = (
+    merger.MergeStrategy(merger.overwrite),
+    merger.MergeStrategy(merger.update, from_types=(dict,), to_types=(dict,)),
+)
+
+
 class FancyDict(dict):
     def __init__(self, __dct=None, **kwargs):
         super().__init__()
-        self._strategies = [
-            merger.MergeStrategy(merger.update,
-                                 from_types=(dict,), to_types=(dict,)),
-            merger.MergeStrategy(merger.overwrite),
-        ]
+        self._strategies = list(DEFAULT_MERGE_STRATEGIES)
         self.update(__dct)
         self.update(kwargs)
+
+    def add_strategy(self, strategy):
+        self._strategies.append(strategy)
 
     def __setitem__(self, key, value):
         if isinstance(value, dict):
@@ -19,7 +24,7 @@ class FancyDict(dict):
 
     def _update_value(self, key, new_value):
         old_value = self.get(key, None)
-        for strategy in self._strategies:
+        for strategy in reversed(self._strategies):
             if strategy.can_merge(key, old_value, new_value):
                 self[key] = strategy.method(old_value, new_value)
                 return
