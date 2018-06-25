@@ -3,9 +3,14 @@ from collections import defaultdict
 from fancy_dict import merger
 from errors import NoValidMergeStrategyFound
 from conditions import always
+from query_engine import QueryEngine
 
 
 class FancyDict(dict):
+    @staticmethod
+    def default_query_engine():
+        return QueryEngine()
+
     @staticmethod
     def default_condition():
         return always
@@ -28,6 +33,7 @@ class FancyDict(dict):
         self._strategies = self.default_merge_strategies()
         self._finalized_keys = []
         self._conditions = defaultdict(self.default_condition)
+        self.query_engine = self.default_query_engine()
         self.update(__dct)
         self.update(kwargs)
 
@@ -53,6 +59,9 @@ class FancyDict(dict):
             if isinstance(value, dict):
                 value = self.derive(init_with=value)
             super().__setitem__(key, value)
+
+    def query(self, query):
+        yield from self.query_engine(query, self)
 
     def update(self, __dct=None, **kwargs):
         if isinstance(__dct, dict):

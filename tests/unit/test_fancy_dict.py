@@ -125,3 +125,9 @@ class TestUpdate:
         )
         base_fancy_dict.update(update_fancy_dict)
         assert 2 == base_fancy_dict["counter"]
+
+
+class TestQuery:
+    def test_query_string(self):
+        fancy_dict = FancyDict({"key": {"sub": 1}})
+        assert 1 == next(fancy_dict.query("key.sub"))
