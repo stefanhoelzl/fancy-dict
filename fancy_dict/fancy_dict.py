@@ -28,7 +28,7 @@ class FancyDict(dict):
         Can be overriden to customize the behavior.
 
         Returns:
-            StringQueryBuilder
+            type
         """
         return StringQueryBuilder
 

@@ -25,7 +25,9 @@ setup(
     author_email='stefan.hoelzl@posteo.de',
     license='MIT',
     packages=['fancy_dict'],
-    install_requires=[],
+    install_requires=[
+        'pyyaml'
+    ],
     include_package_data=True,
     zip_safe=False
 )

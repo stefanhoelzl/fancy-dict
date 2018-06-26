@@ -1,3 +1,6 @@
+# fancy-dict
+pyyaml
+
 # packaging
 twine
 wheel
