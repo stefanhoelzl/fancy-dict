@@ -9,7 +9,6 @@ def uninstall(ctx):
 
 @task
 def install(ctx):
-    ctx.run("pip install -r requirements-dev.txt")
     ctx.run("pip install -r requirements.txt")
 
 

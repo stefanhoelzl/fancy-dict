@@ -1,0 +1,22 @@
+# packaging
+twine
+wheel
+setuptools
+pip
+
+# linter
+mypy
+pylint
+pycodestyle
+
+# automation
+invoke
+
+# testing
+pytest
+
+# documentation
+sphinx
+sphinx-rtd-theme
+sphinxcontrib-napoleon
+recommonmark
