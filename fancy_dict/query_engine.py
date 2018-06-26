@@ -1,68 +1,115 @@
+"""FancyDict QueryEngine"""
+
 import re
-import typing
-from contextlib import contextmanager
+from itertools import chain
 
 
 class Query:
+    """Query
+
+    Sequence of transformations.
+    Can be applied onto a object to receive a result.
+
+    A transformation gets a object as parameter
+    and returns the transformed object.
+    """
     def __init__(self):
-        self._filter = []
-        self._current_filter = 0
+        self._transformations = []
+        self._current_transformation = 0
 
-    def add(self, filter_):
-        self._filter.append(filter_)
+    def add(self, transformation):
+        """Adds a transformation
 
-    @contextmanager
-    def _tee(self):
-        current_filter_backup = self._current_filter
-        yield
-        self._current_filter = current_filter_backup
+        Args:
+            transformation: transformation to add
+        """
+        self._transformations.append(transformation)
 
-    def __bool__(self):
-        return self._current_filter < len(self._filter)
+    def apply(self, item):
+        """Applies the transformations onto a given object
 
-    def __next__(self):
-        if self:
-            _filter = self._filter[self._current_filter]
-            self._current_filter += 1
-            return _filter
-        raise StopIteration
+        Args:
+            item: item to apply the transformations onto
 
-    def __call__(self, item):
-        with self._tee():
-            filter_ = self.__next__()
-            yield from filter_(item)
+        Returns:
+            transformed item
+        """
+        transformed = (item,)
+        for transformation in self._transformations:
+            transformed = chain.from_iterable(map(transformation, transformed))
+        yield from transformed
 
 
 class QueryBuilder:
+    """QueryBuilder
+
+    Builds a Query by chaining transformations.
+    """
     def __init__(self):
         self._query = Query()
 
     def build(self):
+        """Builds the Query
+
+        Returns:
+            the Query
+        """
         return self._query
 
-    def add(self, filter_):
-        self._query.add(filter_)
+    def add(self, transformation):
+        """Adds a transformation to the Query
+
+        Args:
+            transformation: transformation to add
+        """
+        self._query.add(transformation)
 
     def get(self, key):
-        def get_(item):
-            yield item.get(key)
-        self.add(get_)
+        """Transformation to query the key of an dict
+
+        Args:
+            key: key to query from dict
+
+        Returns:
+            QueryBuilder
+        """
+        def _get(item):
+            if key in item:
+                yield item.get(key)
+        self.add(_get)
         return self
 
     def slice(self, start=None, stop=None, step=None):
-        def slice_(item):
+        """Transformation to get a slice of an sequence
+
+        Args:
+            start: start of slice
+            stop: end of slice
+            step: steps of slice
+
+        Returns:
+            QueryBuilder
+        """
+        def _slice(item):
             yield from item[slice(start, stop, step)]
-        self.add(slice_)
+        self.add(_slice)
         return self
 
     def all(self):
-        def all_(item):
+        """Transformation to query all values of a dict
+
+        Returns:
+            QueryBuilder
+        """
+        def _all(item):
             yield from item.values()
-        self.add(all_)
+        self.add(_all)
         return self
 
 
 class StringQueryBuilder(QueryBuilder):
+    """Builds a Query from a string definition.
+    """
     def __init__(self, query_string,
                  separator=".",
                  indexing=r"^(?P<key>.*)\[(?P<index>[0-9-:]*)\]$",
@@ -107,24 +154,3 @@ class StringQueryBuilder(QueryBuilder):
             self.slice(*slice_)
         if sub_query_string:
             self._resolve_query_string(sub_query_string)
-
-
-class QueryEngine:
-    def __call__(self, query, item):
-        if isinstance(query, str):
-            query = StringQueryBuilder(query).build()
-        yield from self._run_query(query, item)
-
-    def _run_query(self, query, item):
-        if not query:
-            yield from self._iter_item(item)
-        else:
-            for new_item in query(item):
-                yield from self(query, new_item)
-
-    @staticmethod
-    def _iter_item(item):
-        if isinstance(item, typing.Sequence) and not isinstance(item, str):
-            yield from item
-        elif item is not None:
-            yield item

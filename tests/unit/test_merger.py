@@ -1,27 +1,27 @@
 from fancy_dict.merger import *
 
 
-class TestCanMerge:
+class TestApplies:
     def test_false_if_no_condition_true(self):
         merger = MergeStrategy(overwrite,
                                key="key", from_types=(str,), to_types=(str,))
-        assert not merger.can_merge("wrong_key", 1, 2)
+        assert not merger.applies("wrong_key", 1, 2)
 
     def test_true_if_all_conditions_none(self):
-        assert MergeStrategy(overwrite).can_merge("key", 1, 2)
+        assert MergeStrategy(overwrite).applies("key", 1, 2)
 
     def test_true_if_key_matches(self):
-        assert MergeStrategy(overwrite, key="key").can_merge("key", 1, 2)
+        assert MergeStrategy(overwrite, key="key").applies("key", 1, 2)
 
     def test_true_if_from_types_matches(self):
         merger = MergeStrategy(overwrite, from_types=(int, str))
-        assert merger.can_merge("key", 1, [1])
-        assert merger.can_merge("key", "old", (1,))
+        assert merger.applies("key", 1, [1])
+        assert merger.applies("key", "old", (1,))
 
     def test_true_if_to_types_matches(self):
         merger = MergeStrategy(overwrite, to_types=(int, str))
-        assert merger.can_merge("key", [1], 1)
-        assert merger.can_merge("key", (1,), "new")
+        assert merger.applies("key", [1], 1)
+        assert merger.applies("key", (1,), "new")
 
 
 class TestMethods:

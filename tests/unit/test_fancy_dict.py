@@ -62,12 +62,19 @@ class TestAddStrategy:
         assert 2 == fancy_dict["counter"]
 
 
+class TestClearStrategies:
+    def test_clear_strategies(self):
+        fancy_dict = FancyDict()
+        fancy_dict.clear_strategies()
+        assert 0 == len(fancy_dict.strategies)
+
+
 class TestAddCondition:
     def test_add_and_use_condition(self):
         fancy_dict_with_condition = FancyDict()
         fancy_dict_with_condition["key"] = "value"
         fancy_dict_with_condition["key_not_merging"] = "value"
-        fancy_dict_with_condition.add_condition("key_not_merging",
+        fancy_dict_with_condition.set_condition("key_not_merging",
                                                 lambda o, n: False)
         assert {"key": "value"} == FancyDict(fancy_dict_with_condition)
 

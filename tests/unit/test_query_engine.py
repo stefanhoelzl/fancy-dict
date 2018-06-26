@@ -1,38 +1,46 @@
-from fancy_dict.query_engine import QueryEngine, QueryBuilder, \
-    StringQueryBuilder
+from unittest import mock
+
+from fancy_dict.query_engine import QueryBuilder, StringQueryBuilder
 
 
-def run_query(qry, dct):
-    query_engine = QueryEngine()
-    return list(query_engine(qry, dct))
+def run_query(query, dct):
+    return list(query.apply(dct))
 
 
 class TestStringQueryBuilder:
     def test_top_level_key(self):
-        query = StringQueryBuilder("key").build()
-        filter_ = next(query)
-        assert "get_" == filter_.__name__
-        assert "key" == filter_.__closure__[0].cell_contents
+        with mock.patch.object(StringQueryBuilder, "add") as add_mock:
+            StringQueryBuilder("key").build()
+        add_mock.assert_called_once()
+        transformation = add_mock.call_args[0][0]
+        assert "_get" == transformation.__name__
+        assert "key" == transformation.__closure__[0].cell_contents
 
     def test_nested_key(self):
-        query = StringQueryBuilder("key.middle.sub").build()
-        assert "get_" == next(query).__name__
-        assert "get_" == next(query).__name__
-        assert "get_" == next(query).__name__
+        with mock.patch.object(StringQueryBuilder, "add") as add_mock:
+            StringQueryBuilder("key.middle.sub").build()
+        assert 3 == add_mock.call_count
+        assert "_get" == add_mock.call_args_list[0][0][0].__name__
+        assert "_get" == add_mock.call_args_list[1][0][0].__name__
+        assert "_get" == add_mock.call_args_list[2][0][0].__name__
 
     def test_match_all(self):
-        query = StringQueryBuilder("key.*").build()
-        assert "get_" == next(query).__name__
-        assert "all_" == next(query).__name__
+        with mock.patch.object(StringQueryBuilder, "add") as add_mock:
+            StringQueryBuilder("key.*").build()
+        assert 2 == add_mock.call_count
+        assert "_get" == add_mock.call_args_list[0][0][0].__name__
+        assert "_all" == add_mock.call_args_list[1][0][0].__name__
 
     def test_indexing(self):
-        query = StringQueryBuilder("key[0:5:1]").build()
-        assert "get_" == next(query).__name__
-        filter_ = next(query)
-        assert "slice_" == filter_.__name__
-        assert 0 == filter_.__closure__[0].cell_contents
-        assert 1 == filter_.__closure__[1].cell_contents
-        assert 5 == filter_.__closure__[2].cell_contents
+        with mock.patch.object(StringQueryBuilder, "add") as add_mock:
+            StringQueryBuilder("key[0:5:1]").build()
+        assert 2 == add_mock.call_count
+        assert "_get" == add_mock.call_args_list[0][0][0].__name__
+        slice_ = add_mock.call_args_list[1][0][0]
+        assert "_slice" == slice_.__name__
+        assert 0 == slice_.__closure__[0].cell_contents
+        assert 1 == slice_.__closure__[1].cell_contents
+        assert 5 == slice_.__closure__[2].cell_contents
 
 
 class TestQueryEngine:
