@@ -86,7 +86,8 @@ class FancyDict(dict):
     def derive(self, init_with=None):
         """Derives a new FancyDict from the given.
 
-        Merging strategies are getting transfered to the new FancyDict.
+        Merging strategies are transfered to the new FancyDict.
+        Merging strageties for a specific key are not transfered.
 
         Args:
             init_with: initial values for new FancyDict
@@ -94,8 +95,8 @@ class FancyDict(dict):
         Returns:
             FancyDict with same merging strategies
         """
-        return type(self).using_strategies(*self.strategies,
-                                           init_with=init_with)
+        strategies = (s for s in self.strategies if s.key is None)
+        return type(self).using_strategies(*strategies,  init_with=init_with)
 
     @property
     def strategies(self):

@@ -2,7 +2,7 @@ import pytest
 
 from fancy_dict import FancyDict
 from fancy_dict.errors import NoValidMergeStrategyFound
-from fancy_dict.merger import MergeStrategy, add
+from fancy_dict.merger import MergeStrategy, add, overwrite
 
 
 class TestUsingStrategies:
@@ -47,6 +47,14 @@ class TestDerive:
         derived_fancy_dict = base_fancy_dict.derive(init_with={"counter": 1})
         derived_fancy_dict.update(counter=1)
         assert 2 == derived_fancy_dict["counter"]
+
+    def test_ignore_strategies_with_key(self):
+        base_fancy_dict = FancyDict.using_strategies(
+            MergeStrategy(overwrite), MergeStrategy(add, key="key")
+        )
+        derived_fancy_dict = base_fancy_dict.derive(init_with={"key": 1})
+        derived_fancy_dict.update(key=3)
+        assert 3 == derived_fancy_dict["key"]
 
     def test_init_with_dict(self):
         fancy_dict = FancyDict().derive(init_with={"a": 1})
