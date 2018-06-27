@@ -108,4 +108,3 @@ class TestQueryBuilder:
     def test_add_transformation(self):
         query = QueryBuilder().all().build()
         assert "all" == next(iter(query)).name
-
