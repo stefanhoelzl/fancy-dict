@@ -2,6 +2,7 @@
 
 import re
 from itertools import chain
+from functools import partial
 
 
 class Query:
@@ -15,7 +16,6 @@ class Query:
     """
     def __init__(self):
         self._transformations = []
-        self._current_transformation = 0
 
     def add(self, transformation):
         """Adds a transformation
@@ -24,6 +24,9 @@ class Query:
             transformation: transformation to add
         """
         self._transformations.append(transformation)
+
+    def __iter__(self):
+        return iter(self._transformations)
 
     def apply(self, item):
         """Applies the transformations onto a given object
@@ -35,9 +38,62 @@ class Query:
             transformed item
         """
         transformed = (item,)
-        for transformation in self._transformations:
+        for transformation in self:
             transformed = chain.from_iterable(map(transformation, transformed))
         yield from transformed
+
+
+class Transformation:
+    """Wrapper class for methods which transforms items for a Query"""
+    def __init__(self, name, *args, **kwargs):
+        self.name = name
+        self.args = args
+        self.kwargs = kwargs
+
+    def __call__(self, item):
+        method = getattr(self, self.name)
+        yield from method(item, *self.args, **self.kwargs)
+
+    @staticmethod
+    def get(item, key):
+        """Transformation to query the key of an dict
+
+        Args:
+            item: item to transform
+            key: key to query from dict
+
+        Returns:
+            value for key
+        """
+        if key in item:
+            yield item.get(key)
+
+    @staticmethod
+    def slice(item, start=None, stop=None, step=None):
+        """Transformation to get a slice of an sequence
+
+        Args:
+            item: item to transform
+            start: start of slice
+            stop: end of slice
+            step: steps of slice
+
+        Yields:
+            sub-items in slice
+        """
+        yield from item[slice(start, stop, step)]
+
+    @staticmethod
+    def all(item):
+        """Transformation to query all values of a dict
+
+        Args:
+            item: item to transform
+
+        Yields:
+            item values
+        """
+        yield from item.values()
 
 
 class QueryBuilder:
@@ -63,53 +119,19 @@ class QueryBuilder:
             transformation: transformation to add
         """
         self._query.add(transformation)
-
-    def get(self, key):
-        """Transformation to query the key of an dict
-
-        Args:
-            key: key to query from dict
-
-        Returns:
-            QueryBuilder
-        """
-        def _get(item):
-            if key in item:
-                yield item.get(key)
-        self.add(_get)
         return self
 
-    def slice(self, start=None, stop=None, step=None):
-        """Transformation to get a slice of an sequence
+    def _add(self, name, *args, **kwargs):
+        return self.add(Transformation(name, *args, **kwargs))
 
-        Args:
-            start: start of slice
-            stop: end of slice
-            step: steps of slice
-
-        Returns:
-            QueryBuilder
-        """
-        def _slice(item):
-            yield from item[slice(start, stop, step)]
-        self.add(_slice)
-        return self
-
-    def all(self):
-        """Transformation to query all values of a dict
-
-        Returns:
-            QueryBuilder
-        """
-        def _all(item):
-            yield from item.values()
-        self.add(_all)
-        return self
+    def __getattr__(self, item):
+        if hasattr(Transformation, item):
+            return partial(self._add, item)
+        return super().__getattribute__(item)
 
 
 class StringQueryBuilder(QueryBuilder):
-    """Builds a Query from a string definition.
-    """
+    """Builds a Query from a string definition."""
     def __init__(self, query_string,
                  separator=".",
                  indexing=r"^(?P<key>.*)\[(?P<index>[0-9-:]*)\]$",

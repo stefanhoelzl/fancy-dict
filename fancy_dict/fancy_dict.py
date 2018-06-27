@@ -6,7 +6,7 @@ from collections import defaultdict
 from . import merger
 from .errors import NoValidMergeStrategyFound
 from .conditions import always
-from .query_engine import StringQueryBuilder
+from .query import StringQueryBuilder
 
 
 class FancyDict(dict):
