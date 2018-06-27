@@ -12,7 +12,6 @@ class MergeStrategy:
     """
     def __init__(self, method, key=None, from_types=None, to_types=None):
         self.method = method
-        self.key = key
         self.from_types = from_types
         self.to_types = to_types
 
@@ -29,21 +28,19 @@ class MergeStrategy:
         """
         return self.method(old_value, new_value)
 
-    def applies(self, key, old, new):
+    def applies(self, old, new):
         """
 
         Args:
-            key: key of value to merge
             old: old value to merge
             new: new value to merge
 
         Returns:
             True if the merge strategy applies to the arguments
         """
-        if self.key is None or self.key == key:
-            if self.from_types is None or isinstance(old, self.from_types):
-                if self.to_types is None or isinstance(new, self.to_types):
-                    return True
+        if self.from_types is None or isinstance(old, self.from_types):
+            if self.to_types is None or isinstance(new, self.to_types):
+                return True
         return False
 
 

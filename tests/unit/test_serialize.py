@@ -5,9 +5,9 @@ from contextlib import contextmanager
 import pytest
 import json
 
-from fancy_dict.serialize import Loader, Annotation
+from fancy_dict.serialize import Loader, AnnotationsSerializer
 from fancy_dict.errors import FileNotFoundInBaseDirs
-from fancy_dict import conditions, merger
+from fancy_dict import conditions
 
 
 @contextmanager
@@ -96,55 +96,50 @@ class TestLoad:
     @pytest.mark.skip
     def test_parse_annotations(self, tmpdir):
         structure = {
-            "base.yml": {"(locked)": True, },
-            "file.yml": {"(key)+add": "value"}
+            "base.yml": {"(finalized)": True, "counter": 1},
+            "file.yml": {"include": ["base.yml"],
+                         "finalized": False, "?no": "NO", "counter[add]": 3}
         }
         with file_structure(structure, tmpdir):
             loader = Loader([tmpdir])
+            result = {"finalized": True, "counter": 4}
+            assert result == loader.load("file.yml")
 
 
-
-class TestAnnotationParser:
+class TestAnnotationsParser:
     def test_key_name_and_defaults(self):
-        annotation = Annotation.from_string("key")
-        assert "key" == annotation.key
-        assert not annotation.locked
-        assert annotation.condition is None
-        assert annotation.strategy is None
+        annotations = AnnotationsSerializer.from_string("key")
+        assert not annotations.finalized
+        assert annotations.condition is None
+        assert annotations.merge_method is None
 
-    def test_locked(self):
-        annotation = Annotation.from_string("(key)")
-        assert "key" == annotation.key
-        assert annotation.locked
+    def test_finalized(self):
+        annotations = AnnotationsSerializer.from_string("(key)")
+        assert annotations.finalized
 
     def test_custom_condition(self):
-        annotation = Annotation.from_string("+key")
-        assert "key" == annotation.key
-        assert conditions.if_not_existing == annotation.condition
+        annotations = AnnotationsSerializer.from_string("+key")
+        assert conditions.if_not_existing == annotations.condition
 
-    def test_merge_strategy(self):
-        annotation = Annotation.from_string("+key[add]")
-        assert "key" == annotation.key
-        assert isinstance(annotation.strategy, merger.MergeStrategy)
-        assert 2 == annotation.strategy(1, 1)
-        assert "key" == annotation.strategy.key
+    def test_merge_method(self):
+        annotations = AnnotationsSerializer.from_string("+key[add]")
+        assert 2 == annotations.merge_method(1, 1)
 
     def test_everything(self):
-        annotation = Annotation.from_string("+(key)[add]")
-        assert "key" == annotation.key
-        assert isinstance(annotation.strategy, merger.MergeStrategy)
-        assert 2 == annotation.strategy(1, 1)
-        assert "key" == annotation.strategy.key
-        assert annotation.locked
+        annotations = AnnotationsSerializer.from_string("+(key)[add]")
+        assert 2 == annotations.merge_method(1, 1)
+        assert annotations.finalized
 
 
-class TestAnnotationString:
+class TestAnnotationsString:
     @pytest.mark.parametrize("annotated_key", [
         "key",
         "(key)",
-        "+another_key",
+        "+key",
         "+key[add]",
         "+(key)[add]",
     ])
     def test(self, annotated_key):
-        assert annotated_key == str(Annotation.from_string(annotated_key))
+        annotations = AnnotationsSerializer.from_string(annotated_key)
+        result = AnnotationsSerializer.to_string(annotations)
+        assert annotated_key == result.format("key")
