@@ -1,19 +1,19 @@
 import pytest
 
 from fancy_dict import FancyDict
+from fancy_dict.fancy_dict import Annotation
 from fancy_dict.errors import NoValidMergeStrategyFound
-from fancy_dict.merger import MergeStrategy, add, overwrite
+from fancy_dict.merger import MergeStrategy, add
 
 
-class TestUsingStrategies:
-    def test_use_given_strategies(self):
-        fancy_dict = FancyDict.using_strategies(MergeStrategy(add))
-        fancy_dict["counter"] = 1
-        fancy_dict.update(counter=1)
-        assert 2 == fancy_dict["counter"]
-
-    def test_init_with_dict(self):
-        assert {"a": 1} == FancyDict.using_strategies(init_with={"a": 1})
+def fancy_dict_with_strategies(*strategies, extend=False):
+    class _FancyDict(FancyDict):
+        @staticmethod
+        def default_merge_strategies():
+            base = FancyDict.default_merge_strategies() if extend else []
+            base.extend(strategies)
+            return base
+    return _FancyDict()
 
 
 class TestInit:
@@ -22,6 +22,9 @@ class TestInit:
 
     def test_with_keywords(self):
         assert {"a": 1} == FancyDict(a=1)
+
+    def test_keywords_overwrite_dict(self):
+        assert {"a": 1} == FancyDict({"a": 0}, a=1)
 
     def test_convert_nested_dict_to_fancy_dict(self):
         assert isinstance(FancyDict(dct={"sub": 1})["dct"], FancyDict)
@@ -34,65 +37,38 @@ class TestSetItem:
         assert isinstance(fancy_dict["dict"], FancyDict)
 
     def test_use_same_strategies_when_converting_dict(self):
-        fancy_dict = FancyDict()
-        fancy_dict.add_strategy(MergeStrategy(add, from_types=int))
+        fancy_dict = fancy_dict_with_strategies(
+            MergeStrategy(add, from_types=int),
+            extend=True
+        )
         fancy_dict["counters"] = {"a": 1}
         fancy_dict.update(counters={"a": 1})
         assert 2 == fancy_dict["counters"]["a"]
 
 
-class TestDerive:
-    def test_copy_strategies(self):
-        base_fancy_dict = FancyDict.using_strategies(MergeStrategy(add))
-        derived_fancy_dict = base_fancy_dict.derive(init_with={"counter": 1})
-        derived_fancy_dict.update(counter=1)
-        assert 2 == derived_fancy_dict["counter"]
-
-    def test_ignore_strategies_with_key(self):
-        base_fancy_dict = FancyDict.using_strategies(
-            MergeStrategy(overwrite), MergeStrategy(add, key="key")
-        )
-        derived_fancy_dict = base_fancy_dict.derive(init_with={"key": 1})
-        derived_fancy_dict.update(key=3)
-        assert 3 == derived_fancy_dict["key"]
-
-    def test_init_with_dict(self):
-        fancy_dict = FancyDict().derive(init_with={"a": 1})
-        assert {"a": 1} == fancy_dict
-
-
-class TestAddStrategy:
-    def test_add_and_use_new_strategy(self):
+class TestAnnotate:
+    def test_set_condition(self):
         fancy_dict = FancyDict()
-        fancy_dict["counter"] = 1
-        fancy_dict.add_strategy(MergeStrategy(add, key="counter"))
-        fancy_dict.update(counter=1)
-        assert 2 == fancy_dict["counter"]
+        fancy_dict["key"] = "value"
+        fancy_dict["key_not_merging"] = "value"
+        fancy_dict.annotate("key_not_merging",
+                            Annotation(condition=lambda o, n: False))
+        assert {"key": "value"} == FancyDict(fancy_dict)
 
-
-class TestClearStrategies:
-    def test_clear_strategies(self):
-        fancy_dict = FancyDict()
-        fancy_dict.clear_strategies()
-        assert 0 == len(fancy_dict.strategies)
-
-
-class TestAddCondition:
-    def test_add_and_use_condition(self):
-        fancy_dict_with_condition = FancyDict()
-        fancy_dict_with_condition["key"] = "value"
-        fancy_dict_with_condition["key_not_merging"] = "value"
-        fancy_dict_with_condition.set_condition("key_not_merging",
-                                                lambda o, n: False)
-        assert {"key": "value"} == FancyDict(fancy_dict_with_condition)
-
-
-class TestFinalize:
-    def test_dont_change_value_if_locked(self):
+    def test_finalize(self):
         fancy_dict = FancyDict(locked=1)
-        fancy_dict.finalize("locked")
+        fancy_dict.annotate("locked",
+                            Annotation(finalize=True))
         fancy_dict["locked"] = 2
         assert 1 == fancy_dict["locked"]
+
+    def test_merge_method(self):
+        base_dict = FancyDict()
+        base_dict["counter"] = 1
+        update_dict = FancyDict(counter=1)
+        update_dict.annotate("counter", Annotation(merge_method=add))
+        base_dict.update(update_dict)
+        assert 2 == base_dict["counter"]
 
 
 class TestUpdate:
@@ -126,7 +102,7 @@ class TestUpdate:
         assert {"key": 1} == base_dict
 
     def test_raise_if_no_valid_strategy(self):
-        fancy_dict = FancyDict.using_strategies()
+        fancy_dict = fancy_dict_with_strategies()
         with pytest.raises(NoValidMergeStrategyFound) as e:
             fancy_dict.update(val=1)
         assert "val" == e.value.key
@@ -135,9 +111,10 @@ class TestUpdate:
 
     def test_use_strategy_of_new_fancy_dict(self):
         base_fancy_dict = FancyDict(counter=1)
-        update_fancy_dict = FancyDict.using_strategies(
-            MergeStrategy(add), init_with={"counter": 1}
+        update_fancy_dict = fancy_dict_with_strategies(
+            MergeStrategy(add)
         )
+        update_fancy_dict["counter"] = 1
         base_fancy_dict.update(update_fancy_dict)
         assert 2 == base_fancy_dict["counter"]
 

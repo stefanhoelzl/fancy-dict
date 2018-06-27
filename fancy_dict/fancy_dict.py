@@ -9,6 +9,18 @@ from .conditions import always
 from .query import StringQueryBuilder
 
 
+class Annotation:
+    """Annotation for a FancyDict key
+
+    Composed of a merge strategy, a merge condition and if the key is finalized
+    """
+
+    def __init__(self, merge_method=None, condition=None, finalize=False):
+        self.merge_method = merge_method
+        self.condition = condition
+        self.finalize = finalize
+
+
 class FancyDict(dict):
     """Extends dict by merging strategies and querying functionality.
 
@@ -49,99 +61,35 @@ class FancyDict(dict):
                                  from_types=dict, to_types=dict),
         ]
 
-    @classmethod
-    def using_strategies(cls, *strategies, init_with=None):
-        """Initializes a FancyDict with custom merging strategies
-
-        Args:
-            *strategies: list of merging strategies
-            init_with: dictionary with initial values
-
-        Returns:
-            FancyDict instance
-        """
-        fancy_dict = cls(init_with)
-        fancy_dict.clear_strategies()
-        for strategy in strategies:
-            fancy_dict.add_strategy(strategy)
-        return fancy_dict
-
     def __init__(self, __dct=None, **kwargs):
         super().__init__()
         self._strategies = self.default_merge_strategies()
-        self._finalized_keys = []
+        self._finalized = {}
         self._conditions = defaultdict(self.default_condition)
-        self.update(__dct)
-        self.update(kwargs)
+        init_values = __dct if __dct else {}
+        init_values.update(kwargs)
+        if isinstance(init_values, FancyDict):
+            self.update(init_values)
+        else:
+            self.init_with_values(**init_values)
 
-    def derive(self, init_with=None):
-        """Derives a new FancyDict from the given.
+    def init_with_values(self, **init_values):
+        for k, v in init_values.items():
+            self[k] = v
 
-        Merging strategies are transfered to the new FancyDict.
-        Merging strageties for a specific key are not transfered.
-
-        Args:
-            init_with: initial values for new FancyDict
-
-        Returns:
-            FancyDict with same merging strategies
-        """
-        strategies = (s for s in self.strategies if s.key is None)
-        return type(self).using_strategies(*strategies, init_with=init_with)
-
-    @property
-    def strategies(self):
-        """Get a list with the active merging strategies
-
-        Returns:
-            list of active merging strategies
-        """
-        return self._strategies
-
-    def add_strategy(self, strategy):
-        """Adds a new merging strategy
-
-        Args:
-            strategy: merging strategy
-        """
-        self._strategies.append(strategy)
-
-    def clear_strategies(self):
-        """Removes all strategies"""
-        self._strategies.clear()
-
-    @property
-    def conditions(self):
-        """Dictionary to map key to their conditions.
-
-        Returns:
-            key to conditions mapping
-        """
-        return self._conditions
-
-    def set_condition(self, key, condition):
-        """Sets the condition to a key
-
-        Args:
-            key: key where the condition is applied
-            condition: condition so apply
-        """
-        self._conditions[key] = condition
-
-    def finalize(self, key):
-        """Finalizes a key of the dict
-
-        Updates to finalized keys are ignored.
-
-        Args:
-            key: key to finalize
-        """
-        self._finalized_keys.append(key)
+    def annotate(self, key, annotation):
+        if annotation.condition:
+            self._conditions[key] = annotation.condition
+        self._finalized[key] = annotation.finalize
+        if annotation.merge_method:
+            self._strategies.append(
+                merger.MergeStrategy(key=key, method=annotation.merge_method)
+            )
 
     def __setitem__(self, key, value):
-        if key not in self._finalized_keys:
+        if not self._finalized.get(key, False):
             if isinstance(value, dict):
-                value = self.derive(init_with=value)
+                value = type(self)(value)
             super().__setitem__(key, value)
 
     def query(self, query):
@@ -163,24 +111,20 @@ class FancyDict(dict):
             self._update_with_dict(__dct)
         self._update_with_dict(kwargs)
 
-    def _update_value(self, key, new_value, strategies=None):
-        strategies = strategies if strategies is not None else self.strategies
-        old_value = self.get(key, None)
-        for strategy in reversed(strategies):
-            if strategy.applies(key, old_value, new_value):
-                self[key] = strategy(old_value, new_value)
-                return
-        raise NoValidMergeStrategyFound(key, old_value, new_value)
-
     def _update_with_dict(self, dct):
-        strategies = None
         if isinstance(dct, FancyDict):
-            strategies = dct.strategies
-        for key, value in dct.items():
-            if self._check_condition(dct, key):
-                self._update_value(key, value, strategies)
+            fancy_dict = dct
+        else:
+            fancy_dict = type(self)(dct)
+        fancy_dict.merge_into(self)
 
-    def _check_condition(self, dct, key):
-        if isinstance(dct, FancyDict):
-            return dct.conditions[key](self.get(key), dct.get(key))
-        return True
+    def merge_into(self, other_dict):
+        for key, new_value in self.items():
+            old_value = other_dict.get(key)
+            if self._conditions[key](old_value, new_value):
+                for strategy in reversed(self._strategies):
+                    if strategy.applies(key, old_value, new_value):
+                        other_dict[key] = strategy(old_value, new_value)
+                        break
+                else:
+                    raise NoValidMergeStrategyFound(key, old_value, new_value)
