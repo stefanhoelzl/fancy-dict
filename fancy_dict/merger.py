@@ -11,12 +11,12 @@ class MergeStrategy:
 
     """
     def __init__(self, method, key=None, from_types=None, to_types=None):
-        self._method = method
+        self.method = method
         self.key = key
         self.from_types = from_types
         self.to_types = to_types
 
-    def method(self, old_value, new_value):
+    def __call__(self, old_value, new_value):
         """Merges an old with an new value.
 
         Uses the merging strategy method.
@@ -27,7 +27,7 @@ class MergeStrategy:
         Returns:
             merged value
         """
-        return self._method(old_value, new_value)
+        return self.method(old_value, new_value)
 
     def applies(self, key, old, new):
         """

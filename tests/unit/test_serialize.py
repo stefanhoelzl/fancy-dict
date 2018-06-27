@@ -5,8 +5,9 @@ from contextlib import contextmanager
 import pytest
 import json
 
-from fancy_dict.serialize import Loader
+from fancy_dict.serialize import Loader, Annotation
 from fancy_dict.errors import FileNotFoundInBaseDirs
+from fancy_dict import conditions, merger
 
 
 @contextmanager
@@ -91,3 +92,59 @@ class TestLoad:
             loader = Loader([tmpdir], include_key=None)
             result = {"include": "value"}
             assert result == loader.load("file.yml")
+
+    @pytest.mark.skip
+    def test_parse_annotations(self, tmpdir):
+        structure = {
+            "base.yml": {"(locked)": True, },
+            "file.yml": {"(key)+add": "value"}
+        }
+        with file_structure(structure, tmpdir):
+            loader = Loader([tmpdir])
+
+
+
+class TestAnnotationParser:
+    def test_key_name_and_defaults(self):
+        annotation = Annotation.from_string("key")
+        assert "key" == annotation.key
+        assert not annotation.locked
+        assert annotation.condition is None
+        assert annotation.strategy is None
+
+    def test_locked(self):
+        annotation = Annotation.from_string("(key)")
+        assert "key" == annotation.key
+        assert annotation.locked
+
+    def test_custom_condition(self):
+        annotation = Annotation.from_string("+key")
+        assert "key" == annotation.key
+        assert conditions.if_not_existing == annotation.condition
+
+    def test_merge_strategy(self):
+        annotation = Annotation.from_string("+key[add]")
+        assert "key" == annotation.key
+        assert isinstance(annotation.strategy, merger.MergeStrategy)
+        assert 2 == annotation.strategy(1, 1)
+        assert "key" == annotation.strategy.key
+
+    def test_everything(self):
+        annotation = Annotation.from_string("+(key)[add]")
+        assert "key" == annotation.key
+        assert isinstance(annotation.strategy, merger.MergeStrategy)
+        assert 2 == annotation.strategy(1, 1)
+        assert "key" == annotation.strategy.key
+        assert annotation.locked
+
+
+class TestAnnotationString:
+    @pytest.mark.parametrize("annotated_key", [
+        "key",
+        "(key)",
+        "+another_key",
+        "+key[add]",
+        "+(key)[add]",
+    ])
+    def test(self, annotated_key):
+        assert annotated_key == str(Annotation.from_string(annotated_key))

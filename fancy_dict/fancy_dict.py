@@ -21,16 +21,7 @@ class FancyDict(dict):
 
     Queries allow it to retrieve values deep inside the dict.
     """
-    @staticmethod
-    def default_string_query_builder():
-        """Default for building a query from a string.
-
-        Can be overriden to customize the behavior.
-
-        Returns:
-            type
-        """
-        return StringQueryBuilder
+    DEFAULT_STRING_QUERY_BUILDER = StringQueryBuilder
 
     @staticmethod
     def default_condition():
@@ -96,7 +87,7 @@ class FancyDict(dict):
             FancyDict with same merging strategies
         """
         strategies = (s for s in self.strategies if s.key is None)
-        return type(self).using_strategies(*strategies,  init_with=init_with)
+        return type(self).using_strategies(*strategies, init_with=init_with)
 
     @property
     def strategies(self):
@@ -163,8 +154,7 @@ class FancyDict(dict):
             query results
         """
         if isinstance(query, str):
-            string_query_builder = self.default_string_query_builder()
-            query = string_query_builder(query).build()
+            query = self.DEFAULT_STRING_QUERY_BUILDER(query).build()
         return query.apply(self)
 
     def update(self, __dct=None, **kwargs):
@@ -178,7 +168,7 @@ class FancyDict(dict):
         old_value = self.get(key, None)
         for strategy in reversed(strategies):
             if strategy.applies(key, old_value, new_value):
-                self[key] = strategy.method(old_value, new_value)
+                self[key] = strategy(old_value, new_value)
                 return
         raise NoValidMergeStrategyFound(key, old_value, new_value)
 
