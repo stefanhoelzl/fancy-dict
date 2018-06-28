@@ -4,21 +4,36 @@ from pathlib import Path
 
 import yaml
 
-from fancy_dict import FancyDict
 from fancy_dict.errors import FileNotFoundInBaseDirs
 from fancy_dict import merger, conditions
-from fancy_dict.fancy_dict import Annotations
+from fancy_dict import fancy_dict
 
 
-class Loader:
+class LoaderBase:
+    def __init__(self, output_type=None, **kwargs):
+        self.output_type = output_type if output_type else fancy_dict.FancyDict
+
+    def load(self, item):
+        raise NotImplementedError()
+
+
+class DictLoader(LoaderBase):
+    def load(self, dct):
+        loaded_dict = self.output_type()
+        for k, v in dct.items():
+            loaded_dict[k] = v
+        return loaded_dict
+
+
+class FileLoader(DictLoader):
     """Loads a FancyDict
 
     Looks up files in given base directoies.
     Supports a special include key to include other files.
     """
-    DICT_TYPE = FancyDict
 
-    def __init__(self, base_dirs=('.',), include_key="include"):
+    def __init__(self, base_dirs=('.',), include_key="include", ):
+        super().__init__()
         self._base_dirs = base_dirs
         self._include_key = include_key
 
@@ -32,9 +47,9 @@ class Loader:
             FancyDict
         """
         full_path = self._find_filepath(dict_file)
-        base_dict = self.DICT_TYPE()
+        base_dict = self.output_type()
         with open(full_path, "r") as yml_file:
-            fancy_dict = self.DICT_TYPE(yaml.load(yml_file))
+            fancy_dict = self.output_type(yaml.load(yml_file))
         for include in fancy_dict.pop(self._include_key, ()):
             base_dict.update(self.load(include))
         base_dict.update(fancy_dict)
@@ -46,6 +61,10 @@ class Loader:
             if full_path.exists():
                 return full_path
         raise FileNotFoundInBaseDirs(filename, self._base_dirs)
+
+
+class Loader(DictLoader):
+    pass
 
 
 class AnnotationsSerializer:
@@ -72,7 +91,7 @@ class AnnotationsSerializer:
         Returns:
             AnnotationsParser
         """
-        return Annotations(
+        return fancy_dict.Annotations(
             merge_method=cls._parse_merge_method(annotated_key),
             condition=cls._parse_condition(annotated_key),
             finalized=cls._parse_finalized(annotated_key),

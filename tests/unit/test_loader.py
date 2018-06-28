@@ -5,7 +5,7 @@ from contextlib import contextmanager
 import pytest
 import json
 
-from fancy_dict.serialize import Loader, AnnotationsSerializer
+from fancy_dict.loader import FileLoader, AnnotationsSerializer, DictLoader
 from fancy_dict.errors import FileNotFoundInBaseDirs
 from fancy_dict import conditions
 
@@ -33,14 +33,14 @@ def file_structure(structure, tmpdir):
         yield
 
 
-class TestLoad:
+class TestFileLoad:
     def test_single_file(self, tmpdir):
         with file_structure({"file.yml": {"a": 1}}, tmpdir):
-            assert {"a": 1} == Loader([tmpdir]).load("file.yml")
+            assert {"a": 1} == FileLoader([tmpdir]).load("file.yml")
 
     def test_single_file_in_directory(self, tmpdir):
         with file_structure({"dir": {"file.yml": {"a": 1}}}, tmpdir):
-            assert {"a": 1} == Loader([tmpdir]).load("dir/file.yml")
+            assert {"a": 1} == FileLoader([tmpdir]).load("dir/file.yml")
 
     def test_single_file_multiple_bases(self, tmpdir):
         structure = {
@@ -49,12 +49,12 @@ class TestLoad:
         }
         with file_structure(structure, tmpdir):
             base_dirs = [Path(tmpdir) / "dirA", Path(tmpdir) / "dirB"]
-            assert {"B": 1} == Loader(base_dirs).load("fileB.yml")
+            assert {"B": 1} == FileLoader(base_dirs).load("fileB.yml")
 
     def test_raise_file_not_found(self, tmpdir):
         with file_structure({"file.yml": {"a": 1}}, tmpdir):
             with pytest.raises(FileNotFoundInBaseDirs):
-                Loader([tmpdir]).load("no_file.yml")
+                FileLoader([tmpdir]).load("no_file.yml")
 
     def test_include_file(self, tmpdir):
         structure = {
@@ -62,7 +62,7 @@ class TestLoad:
             "inc.yml": {"inc_key": "value"}
         }
         with file_structure(structure, tmpdir):
-            loader = Loader([tmpdir])
+            loader = FileLoader([tmpdir])
             result = {"key": "value", "inc_key": "value"}
             assert result == loader.load("file.yml")
 
@@ -72,7 +72,7 @@ class TestLoad:
             "inc.yml": {"A": "1"}
         }
         with file_structure(structure, tmpdir):
-            assert {"A": 0} == Loader([tmpdir]).load("file.yml")
+            assert {"A": 0} == FileLoader([tmpdir]).load("file.yml")
 
     def test_custom_include_key(self, tmpdir):
         structure = {
@@ -80,7 +80,7 @@ class TestLoad:
             "inc.yml": {"inc_key": "value"}
         }
         with file_structure(structure, tmpdir):
-            loader = Loader([tmpdir], include_key="custom_include")
+            loader = FileLoader([tmpdir], include_key="custom_include")
             result = {"key": "value", "inc_key": "value"}
             assert result == loader.load("file.yml")
 
@@ -89,7 +89,7 @@ class TestLoad:
             "file.yml": {"include": "value"}
         }
         with file_structure(structure, tmpdir):
-            loader = Loader([tmpdir], include_key=None)
+            loader = FileLoader([tmpdir], include_key=None)
             result = {"include": "value"}
             assert result == loader.load("file.yml")
 
@@ -101,9 +101,15 @@ class TestLoad:
                          "finalized": False, "?no": "NO", "counter[add]": 3}
         }
         with file_structure(structure, tmpdir):
-            loader = Loader([tmpdir])
+            loader = FileLoader([tmpdir])
             result = {"finalized": True, "counter": 4}
             assert result == loader.load("file.yml")
+
+
+class TestDictLoader:
+    def test_load(self):
+        loader = DictLoader()
+        assert {"a": 1} == loader.load({"a": 1})
 
 
 class TestAnnotationsParser:

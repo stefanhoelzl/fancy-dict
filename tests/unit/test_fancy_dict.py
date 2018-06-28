@@ -45,13 +45,13 @@ class TestAnnotations:
         assert not annotations.finalized
         assert always == annotations.condition
 
+
 def fancy_dict_with_strategies(*strategies, extend=False):
+    base = FancyDict.MERGE_STRATEGIES if extend else ()
+
     class _FancyDict(FancyDict):
-        @staticmethod
-        def default_merge_strategies():
-            base = FancyDict.default_merge_strategies() if extend else []
-            base.extend(strategies)
-            return base
+        MERGE_STRATEGIES = strategies + base
+
     return _FancyDict()
 
 
@@ -69,6 +69,12 @@ class TestInit:
         assert isinstance(FancyDict(dct={"sub": 1})["dct"], FancyDict)
 
 
+class TestLoad:
+    def test_load_dict(self):
+        fancy_dict = FancyDict.load({"a": 1})
+        assert {"a": 1} == fancy_dict
+
+
 class TestSetItem:
     def test_convert_dict_to_fancy_dict(self):
         fancy_dict = FancyDict()
@@ -84,6 +90,12 @@ class TestSetItem:
         fancy_dict.update(counters={"a": 1})
         assert 2 == fancy_dict["counters"]["a"]
 
+    def test_allow_change_even_if_finalized(self):
+        fancy_dict = FancyDict(finalized=1)
+        fancy_dict.annotate("finalized",  Annotations(finalized=True))
+        fancy_dict["finalized"] = 2
+        assert 2 == fancy_dict["finalized"]
+
 
 class TestAnnotate:
     def test_set_condition(self):
@@ -96,9 +108,8 @@ class TestAnnotate:
 
     def test_finalized(self):
         fancy_dict = FancyDict(finalized=1)
-        fancy_dict.annotate("finalized",
-                            Annotations(finalized=True))
-        fancy_dict["finalized"] = 2
+        fancy_dict.annotate("finalized",  Annotations(finalized=True))
+        fancy_dict.update(finalized=2)
         assert 1 == fancy_dict["finalized"]
 
     def test_merge_method(self):
@@ -112,7 +123,7 @@ class TestAnnotate:
     def test_create_annotations_from_keyword_arguments(self):
         fancy_dict = FancyDict(finalized=1)
         fancy_dict.annotate("finalized", finalized=True)
-        fancy_dict["finalized"] = 2
+        fancy_dict.update(finalized=2)
         assert 1 == fancy_dict["finalized"]
 
         fancy_dict["key"] = "value"
@@ -132,6 +143,11 @@ class TestAnnotate:
         fancy_dict.annotate("key", annotations)
         fancy_dict.annotate("key", finalized=False)
         assert not annotations.finalized
+
+    def test_dont_set_annotations_when_there_are_none(self):
+        fancy_dict = FancyDict(key=1)
+        fancy_dict.annotate("key", None)
+        assert fancy_dict.get_annotations("key") is None
 
 
 class TestUpdateWithDict:
@@ -191,6 +207,14 @@ class TestUpdateWithFancyDict:
         base_fancy_dict = FancyDict()
         base_fancy_dict.update(updating_fancy_dict)
         assert base_fancy_dict.get_annotations("key").finalized
+
+    def test_if_finalized_dont_update_annotations(self):
+        fancy_dict = FancyDict(key=1)
+        fancy_dict.annotate("key", finalized=True)
+        update = FancyDict(key=2)
+        update.annotate("key", finalized=False)
+        fancy_dict.update(update)
+        assert 1 == fancy_dict["key"]
 
 
 class TestQuery:
