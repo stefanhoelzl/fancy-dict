@@ -9,7 +9,7 @@ from . import merger
 from .errors import NoMergeMethodApplies
 from .query import StringQueryBuilder, Query
 from .conditions import always
-from .loader import Loader
+from .loader import CompositeLoader
 
 
 class Annotations:
@@ -85,7 +85,7 @@ class FancyDict(dict):
     )
 
     @classmethod
-    def load(cls, source, loader=Loader, **loader_kwargs):
+    def load(cls, source, loader=CompositeLoader, **loader_kwargs):
         """Loads FancyDicts from different sources.
 
         Args:

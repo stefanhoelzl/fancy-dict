@@ -11,6 +11,7 @@ def test_codestyle():
 
 def test_pylint():
     args = ["--disable=R0903",  # too-few-public-methods
+            "--disable=R0401",  # cyclic-import
             "fancy_dict"]
     assert 0 == pylint.lint.Run(args, exit=False).linter.msg_status
 

@@ -24,3 +24,10 @@ class FileNotFoundInBaseDirs(FancyDictException):
         ))
         self.file_name = file_name
         self.base_dirs = base_dirs
+
+
+class NoLoaderForSourceAvailable(FancyDictException):
+    """Exception when no Loader can load from the given source"""
+    def __init__(self, source):
+        super().__init__("Cannot load from source ({})".format(source))
+        self.source = source
