@@ -1,3 +1,6 @@
+.PHONY: default
+default: all;
+
 .PHONY: clean
 clean:
 	rm -rf build dist fancy_dict.egg-info .mpy_cache .pytest_cache docs/_build
@@ -29,3 +32,6 @@ env.install:
 .PHONY: docs.build
 docs.build:
 	sphinx-build -W -b html docs docs/_build
+
+.PHONY: all
+all: tests docs.build release.build
