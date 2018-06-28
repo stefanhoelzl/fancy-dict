@@ -131,7 +131,7 @@ class TestKeyAnnotationsConverter:
         assert annotations.get("merge_method") is None
 
     def test_finalized(self):
-        annotations = KeyAnnotationsConverter.decode(key="(key)")["annotations"]
+        annotations = KeyAnnotationsConverter.decode(key="(k)")["annotations"]
         assert annotations.finalized
 
     def test_custom_condition(self):

@@ -1,4 +1,4 @@
-from fancy_dict.merger import *
+from fancy_dict.merger import MergeStrategy, overwrite, update, add
 
 
 class TestApplies:
