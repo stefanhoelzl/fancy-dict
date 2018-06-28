@@ -12,9 +12,6 @@ mypy
 pylint
 pycodestyle
 
-# automation
-invoke
-
 # testing
 pytest
 
