@@ -27,13 +27,15 @@ class Annotations:
     def __getattr__(self, item):
         if item in self.DEFAULTS:
             default = self.DEFAULTS[item]
-            return self._values[item] if item in self._values else default
+            value = self._values.get(item, default)
+            return default if value is None else value
         return super().__getattribute__(item)
 
     def update(self, annotations):
         for key in self.DEFAULTS:
             if annotations.get(key) is not None:
-                self._values[key] = getattr(annotations, key)
+                value = getattr(annotations, key)
+                self._values[key] = value
 
 
 class FancyDict(dict):
@@ -58,8 +60,7 @@ class FancyDict(dict):
     def load(cls, item, loader=Loader, **kwargs):
         if isinstance(item, FancyDict):
             return item
-        else:
-            return loader(cls, **kwargs).load(item)
+        return loader(cls, **kwargs).load(item)
 
     def __init__(self, __dct=None, **kwargs):
         super().__init__()

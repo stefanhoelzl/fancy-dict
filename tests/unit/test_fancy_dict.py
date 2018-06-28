@@ -18,6 +18,10 @@ class TestAnnotations:
         annotations = Annotations()
         assert annotations.get("condition") is None
 
+    def test_default_if_none_was_set(self):
+        annotations = Annotations(condition=None)
+        assert always == annotations.condition
+
     def test_update_merge_method(self):
         annotations = Annotations(
             merge_method=add, finalized=True, condition=if_existing

@@ -5,7 +5,7 @@ from contextlib import contextmanager
 import pytest
 import json
 
-from fancy_dict.loader import FileLoader, AnnotationsSerializer, DictLoader
+from fancy_dict.loader import FileLoader, KeyAnnotationsConverter, DictLoader
 from fancy_dict.errors import FileNotFoundInBaseDirs
 from fancy_dict import conditions
 
@@ -93,17 +93,22 @@ class TestFileLoad:
             result = {"include": "value"}
             assert result == loader.load("file.yml")
 
-    @pytest.mark.skip
     def test_parse_annotations(self, tmpdir):
         structure = {
-            "base.yml": {"(finalized)": True, "counter": 1},
+            "base.yml": {"(finalized)": True,
+                         "counter": 1,
+                         "sub": {"?yes": "YES"}},
             "file.yml": {"include": ["base.yml"],
-                         "finalized": False, "?no": "NO", "counter[add]": 3}
+                         "finalized": False,
+                         "counter[add]": 3,
+                         "sub": {"?no": "NO", "?yes": "YES"}
+                         }
         }
         with file_structure(structure, tmpdir):
             loader = FileLoader([tmpdir])
-            result = {"finalized": True, "counter": 4}
-            assert result == loader.load("file.yml")
+            result = {"finalized": True, "counter": 4, "sub": {"yes": "YES"}}
+            loaded = loader.load("file.yml")
+            assert result == loaded
 
 
 class TestDictLoader:
@@ -111,41 +116,47 @@ class TestDictLoader:
         loader = DictLoader()
         assert {"a": 1} == loader.load({"a": 1})
 
+    def test_parse_annotations(self):
+        loader = DictLoader()
+        assert {"a": 1} == loader.load(
+            {"a": 1, "?b": 1}, annotations_decoder=KeyAnnotationsConverter
+        )
 
-class TestAnnotationsParser:
+
+class TestKeyAnnotationsConverter:
     def test_key_name_and_defaults(self):
-        annotations = AnnotationsSerializer.from_string("key")
+        annotations = KeyAnnotationsConverter.decode(key="key")["annotations"]
         assert not annotations.finalized
-        assert annotations.condition is None
-        assert annotations.merge_method is None
+        assert annotations.get("condition") is None
+        assert annotations.get("merge_method") is None
 
     def test_finalized(self):
-        annotations = AnnotationsSerializer.from_string("(key)")
+        annotations = KeyAnnotationsConverter.decode(key="(key)")["annotations"]
         assert annotations.finalized
 
     def test_custom_condition(self):
-        annotations = AnnotationsSerializer.from_string("+key")
+        annotations = KeyAnnotationsConverter.decode(key="+key")["annotations"]
         assert conditions.if_not_existing == annotations.condition
 
     def test_merge_method(self):
-        annotations = AnnotationsSerializer.from_string("+key[add]")
+        key = "key[add]"
+        annotations = KeyAnnotationsConverter.decode(key=key)["annotations"]
         assert 2 == annotations.merge_method(1, 1)
 
     def test_everything(self):
-        annotations = AnnotationsSerializer.from_string("+(key)[add]")
+        key = "+(key)[add]"
+        annotations = KeyAnnotationsConverter.decode(key=key)["annotations"]
         assert 2 == annotations.merge_method(1, 1)
         assert annotations.finalized
 
-
-class TestAnnotationsString:
-    @pytest.mark.parametrize("annotated_key", [
+    @pytest.mark.parametrize("key", [
         "key",
         "(key)",
         "+key",
         "+key[add]",
         "+(key)[add]",
     ])
-    def test(self, annotated_key):
-        annotations = AnnotationsSerializer.from_string(annotated_key)
-        result = AnnotationsSerializer.to_string(annotations)
-        assert annotated_key == result.format("key")
+    def test_encoder(self, key):
+        annotations = KeyAnnotationsConverter.decode(key=key)["annotations"]
+        result = KeyAnnotationsConverter.encode(annotations, key="key")
+        assert key == result["key"]
