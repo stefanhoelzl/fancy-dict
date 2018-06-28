@@ -1,8 +1,8 @@
 import pytest
 
 from fancy_dict import FancyDict
-from fancy_dict.errors import NoValidMergeStrategyFound
-from fancy_dict.merger import MergeStrategy, add, overwrite
+from fancy_dict.errors import NoMergeMethodApplies
+from fancy_dict.merger import MergeMethod, add, overwrite
 from fancy_dict.conditions import if_existing, always
 from fancy_dict.fancy_dict import Annotations
 
@@ -50,11 +50,11 @@ class TestAnnotations:
         assert always == annotations.condition
 
 
-def fancy_dict_with_strategies(*strategies, extend=False):
-    base = FancyDict.MERGE_STRATEGIES if extend else ()
+def fancy_dict_with_merge_methods(*methods, extend=False):
+    base = FancyDict.MERGE_METHODS if extend else ()
 
     class _FancyDict(FancyDict):
-        MERGE_STRATEGIES = strategies + base
+        MERGE_METHODS = methods + base
 
     return _FancyDict()
 
@@ -85,9 +85,9 @@ class TestSetItem:
         fancy_dict["dict"] = {"key": "value"}
         assert isinstance(fancy_dict["dict"], FancyDict)
 
-    def test_use_same_strategies_when_converting_dict(self):
-        fancy_dict = fancy_dict_with_strategies(
-            MergeStrategy(add, from_types=int),
+    def test_use_same_merge_method_when_converting_dict(self):
+        fancy_dict = fancy_dict_with_merge_methods(
+            MergeMethod(add, from_types=int),
             extend=True
         )
         fancy_dict["counters"] = {"a": 1}
@@ -184,19 +184,19 @@ class TestUpdateWithDict:
         base_dict.update(key=1)
         assert {"key": 1} == base_dict
 
-    def test_raise_if_no_valid_strategy(self):
-        fancy_dict = fancy_dict_with_strategies()
-        with pytest.raises(NoValidMergeStrategyFound) as e:
+    def test_raise_if_no_valid_merge_method(self):
+        fancy_dict = fancy_dict_with_merge_methods()
+        with pytest.raises(NoMergeMethodApplies) as e:
             fancy_dict.update(val=1)
         assert e.value.old_value is None
         assert 1 == e.value.new_value
 
 
 class TestUpdateWithFancyDict:
-    def test_use_different_strategies_only_once(self):
+    def test_use_different_merge_methods_only_once(self):
         base_fancy_dict = FancyDict(counter=1)
-        update_fancy_dict = fancy_dict_with_strategies(
-            MergeStrategy(add)
+        update_fancy_dict = fancy_dict_with_merge_methods(
+            MergeMethod(add)
         )
         update_fancy_dict["counter"] = 1
         base_fancy_dict.update(update_fancy_dict)

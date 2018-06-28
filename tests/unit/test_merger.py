@@ -1,21 +1,21 @@
-from fancy_dict.merger import MergeStrategy, overwrite, update, add
+from fancy_dict.merger import MergeMethod, overwrite, update, add
 
 
 class TestApplies:
     def test_false_if_no_condition_true(self):
-        merger = MergeStrategy(overwrite, from_types=(str,), to_types=(str,))
+        merger = MergeMethod(overwrite, from_types=(str,), to_types=(str,))
         assert not merger.applies(1, 2)
 
     def test_true_if_all_conditions_none(self):
-        assert MergeStrategy(overwrite).applies(1, 2)
+        assert MergeMethod(overwrite).applies(1, 2)
 
     def test_true_if_from_types_matches(self):
-        merger = MergeStrategy(overwrite, from_types=(int, str))
+        merger = MergeMethod(overwrite, from_types=(int, str))
         assert merger.applies(1, [1])
         assert merger.applies("old", (1,))
 
     def test_true_if_to_types_matches(self):
-        merger = MergeStrategy(overwrite, to_types=(int, str))
+        merger = MergeMethod(overwrite, to_types=(int, str))
         assert merger.applies([1], 1)
         assert merger.applies((1,), "new")
 

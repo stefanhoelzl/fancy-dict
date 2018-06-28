@@ -9,7 +9,7 @@ def readme():
 setup(
     name='fancy_dict',
     version='0.0.0',
-    description='fancy python dictionary using sophisticated merging strategies',
+    description='Dictionary extended by merge/load/query functions',
     long_description=readme(),
     long_description_content_type="text/markdown",
     classifiers=[

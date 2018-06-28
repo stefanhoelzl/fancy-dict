@@ -1,12 +1,12 @@
 """Dictionary extended load/update/query features.
 
 Loads data from different sources using Loaders.
-Updates data with customizeable MergeStrategies.
+Updates data with customizeable MergeMethods.
 Queries data using Transformations.
 """
 
 from . import merger
-from .errors import NoValidMergeStrategyFound
+from .errors import NoMergeMethodApplies
 from .query import StringQueryBuilder, Query
 from .conditions import always
 from .loader import Loader
@@ -15,7 +15,7 @@ from .loader import Loader
 class Annotations:
     """Annotations for a FancyDict key
 
-    Composed of a merge strategy, a merge condition and if the key is finalized
+    Composed of a merge method, a merge condition and if the key is finalized
 
     The merge method specifies a method
     how values for this key gets merged with other values.
@@ -67,9 +67,9 @@ class Annotations:
 
 
 class FancyDict(dict):
-    """Extends dict by merging strategies and querying functionality.
+    """Extends dict by merging methods and querying functionality.
 
-    Merging strategies can define custom behavior how to merge certain values
+    Merging methods can define custom behavior how to merge certain values
     in the dict.
 
     Conditions can prevent merging a value under certain circumstances.
@@ -78,10 +78,10 @@ class FancyDict(dict):
 
     Queries allow it to retrieve values deep inside the dict.
     """
-    MERGE_STRATEGIES = (
-        merger.MergeStrategy(merger.update,
-                             from_types=dict, to_types=dict),
-        merger.MergeStrategy(merger.overwrite),
+    MERGE_METHODS = (
+        merger.MergeMethod(merger.update,
+                           from_types=dict, to_types=dict),
+        merger.MergeMethod(merger.overwrite),
     )
 
     @classmethod
@@ -160,7 +160,7 @@ class FancyDict(dict):
         return query.apply(self)
 
     def update(self, __dct=None, **kwargs):
-        """Updates the data using MergeStrategies and Annotations
+        """Updates the data using MergeMethods and Annotations
 
         When updating with a plain dict, they get first converted to FancyDicts
 
@@ -179,17 +179,17 @@ class FancyDict(dict):
         in the following order:
         1. merge method annotated in source
         2. merge method annotated in destination
-        3. global merge strategies
-            * first the source merge strategies are evaluated
-            * second the destination merge strategies are evaluated
-            * the first merge strategy which applies to the old and new value
+        3. global merge methods
+            * first the source merge methods are evaluated
+            * second the destination merge methods are evaluated
+            * the first merge method which applies to the old and new value
               is used.
 
         Args:
             __dct: source dict to merge into destination (self)
             **kwargs: key-value-pairs for source dict
         Raises:
-            NoValidMergeStrategyFound if no valid MergeStrategy was found.
+            NoMergeMethodApplies if no valid MergeStrategy was found.
         """
         if isinstance(__dct, dict):
             self._update_with_fancy_dict(self.load(__dct))
@@ -212,10 +212,10 @@ class FancyDict(dict):
             if annotations.get("merge_method") is not None:
                 self[key] = annotations.merge_method(old_value, new_value)
             else:
-                strategies = from_dict.MERGE_STRATEGIES + self.MERGE_STRATEGIES
-                for strategy in strategies:
-                    if strategy.applies(old_value, new_value):
-                        self[key] = strategy(old_value, new_value)
+                methods = from_dict.MERGE_METHODS + self.MERGE_METHODS
+                for method in methods:
+                    if method.applies(old_value, new_value):
+                        self[key] = method(old_value, new_value)
                         break
                 else:
-                    raise NoValidMergeStrategyFound(old_value, new_value)
+                    raise NoMergeMethodApplies(old_value, new_value)

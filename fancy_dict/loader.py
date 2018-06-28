@@ -98,8 +98,8 @@ class KeyAnnotationsConverter(AnnotationsEncoder, AnnotationsDecoder):
 
     @classmethod
     def _parse_merge_method(cls, annotated_key):
-        strategy_pattern = r"\[(?P<name>.+)\]$"
-        match = re.search(strategy_pattern, annotated_key)
+        method_pattern = r"\[(?P<name>.+)\]$"
+        match = re.search(method_pattern, annotated_key)
         if match:
             return cls.MERGE_METHODS[match.group("name")]
         return None

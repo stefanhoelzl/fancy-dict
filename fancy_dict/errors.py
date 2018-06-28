@@ -6,8 +6,8 @@ class FancyDictException(Exception):
     pass
 
 
-class NoValidMergeStrategyFound(FancyDictException):
-    """Exception when no merge strategy was found"""
+class NoMergeMethodApplies(FancyDictException):
+    """Exception when no merge method applies"""
     def __init__(self, old_value, new_value):
         super().__init__("Cannot merge {} onto {}".format(
             new_value, old_value
