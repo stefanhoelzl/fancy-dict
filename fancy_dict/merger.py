@@ -4,13 +4,13 @@
 class MergeStrategy:
     """Wrapper for a merging strategy method
 
-    Strategy applies when the old value is an instance of from_types,
-    the new value is an instance of to_types and the keys coincide.
+    Can check if a strategy appilies to merging two values.
+    Provides a method to merge to values.
 
-    If the strategy applies
-
+    Strategy applies when the old value is an instance of from_types
+    and the new value is an instance of to_types.
     """
-    def __init__(self, method, key=None, from_types=None, to_types=None):
+    def __init__(self, method, from_types=None, to_types=None):
         self.method = method
         self.from_types = from_types
         self.to_types = to_types
@@ -29,14 +29,14 @@ class MergeStrategy:
         return self.method(old_value, new_value)
 
     def applies(self, old, new):
-        """
+        """Checks if the types of old and new match from_types and to_types
 
         Args:
             old: old value to merge
             new: new value to merge
 
         Returns:
-            True if the merge strategy applies to the arguments
+            True if old of type from_types and new of type to_types.
         """
         if self.from_types is None or isinstance(old, self.from_types):
             if self.to_types is None or isinstance(new, self.to_types):

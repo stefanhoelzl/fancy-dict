@@ -1,7 +1,6 @@
 """Loader and Dumper to serialize FancyDicts"""
 import re
 from pathlib import Path
-from collections import namedtuple
 
 import yaml
 
@@ -10,23 +9,52 @@ from fancy_dict import merger, conditions
 from fancy_dict import fancy_dict
 
 
-KeyValue = namedtuple("KeyValue", "key value")
-
-
 class AnnotationsDecoder:
+    """Interface to decode annotations"""
     @classmethod
     def decode(cls, key=None, value=None):
+        """Decodes an annotation from a key/value-pair
+
+        Args:
+            key: can be used to decode annotation
+            value: can be used to decode annotation
+        Returns:
+            dict with the following keys:
+            * key: decoded key
+            * value: decoded value
+            * decoded: annotation
+        """
         raise NotImplementedError()
 
 
 class AnnotationsEncoder:
+    """Interface to encode annotations"""
     @classmethod
     def encode(cls, annotation, key=None, value=None):
+        """Encodes an annotation into a key/value-pair
+
+        Args:
+            annotation: annotation to encode
+            key: initial key value to encode annotation into
+            value: initial value to encode annotation into
+        Returns:
+            dict with the following keys:
+            * key: key with annotation encoded
+            * value: value with annotation encoded
+        """
         raise NotImplementedError()
 
 
-class KeyAnnotationsConverter(AnnotationsEncoder):
-    """Deserializes an Annotations string"""
+class KeyAnnotationsConverter(AnnotationsEncoder, AnnotationsDecoder):
+    """Encodes/Decodes an Annotations from the key
+
+    The following format is used to encode and decode annotation strings:
+    ?(key)[add]
+    * The first character defines the condition (optional)
+    * Followed by the key name
+    * if the key is in round brackets, the key gets finalized (optional)
+    * at the end the merge method can be specified in square brackets
+    """
     MERGE_METHODS = {
         "add": merger.add,
         "overwrite": merger.overwrite,
@@ -79,19 +107,19 @@ class KeyAnnotationsConverter(AnnotationsEncoder):
     @classmethod
     def _parse_condition(cls, annotated_key):
         for marker, condition in cls.CONDITIONS.items():
-            if marker in annotated_key:
+            if annotated_key.startswith(marker):
                 return condition
         return None
 
     @classmethod
     def encode(cls, annotation, key=None, value=None):
         return {
-            "key": cls.to_string(annotation).format(key),
+            "key": cls._to_string(annotation).format(key),
             "value": value
         }
 
     @classmethod
-    def to_string(cls, annotation):
+    def _to_string(cls, annotation):
         annotated_key = ""
         if annotation.get("condition"):
             reversed_conditions = {v: k for k, v in cls.CONDITIONS.items()}
@@ -109,18 +137,31 @@ class KeyAnnotationsConverter(AnnotationsEncoder):
         return annotated_key
 
 
-class LoaderBase:
-    def __init__(self, output_type=None, **kwargs):
+class LoaderInterface:
+    """Interface for a FancyDict Loader"""
+    def __init__(self, output_type=None):
         self.type = output_type if output_type else fancy_dict.FancyDict
 
-    def load(self, item, annotations_decoder=None):
+    def load(self, source, annotations_decoder=None):
+        """Loads a FancyDict from a given source
+
+        If an annotations_decoder is given, Annotations can be decoded from
+        the source data.
+
+        Args:
+            source: source to load from
+            annotations_decoder: Decoder to decode annotations from source data
+        Returns:
+            FancyDict
+        """
         raise NotImplementedError()
 
 
-class DictLoader(LoaderBase):
-    def load(self, item, annotations_decoder=None):
+class DictLoader(LoaderInterface):
+    """Loads a dict as FancyDict"""
+    def load(self, source, annotations_decoder=None):
         return self.type(
-            self._load_without_running_annotations(item, annotations_decoder)
+            self._load_without_running_annotations(source, annotations_decoder)
         )
 
     def _load_without_running_annotations(self, dct, annotations_decoder=None):
@@ -146,7 +187,7 @@ class DictLoader(LoaderBase):
 
 
 class FileLoader(DictLoader):
-    """Loads a FancyDict
+    """Loads a FancyDict from a YAML/JSON file
 
     Looks up files in given base directoies.
     Supports a special include key to include other files.
@@ -158,16 +199,16 @@ class FileLoader(DictLoader):
         self._base_dirs = base_dirs
         self._include_key = include_key
 
-    def load(self, item, annotations_decoder=KeyAnnotationsConverter):
+    def load(self, source, annotations_decoder=KeyAnnotationsConverter):
         """Loads a yaml/json file as FancyDict
 
         Args:
-            dict_file: filename
+            source: filename
 
         Returns:
             FancyDict
         """
-        full_path = self._find_filepath(item)
+        full_path = self._find_filepath(source)
         dct = self._load_dict(full_path, annotations_decoder)
         base_dict = self._build_base_dict_with_includes(
             dct.pop(self._include_key, ()), annotations_decoder

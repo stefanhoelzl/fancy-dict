@@ -10,7 +10,9 @@ def test_codestyle():
 
 
 def test_pylint():
-    assert 0 == pylint.lint.Run(["fancy_dict"], exit=False).linter.msg_status
+    args = ["--disable=R0903",  # too-few-public-methods
+            "fancy_dict"]
+    assert 0 == pylint.lint.Run(args, exit=False).linter.msg_status
 
 
 def test_mypy():
