@@ -1,4 +1,9 @@
-"""A FancyDict is a dict with extended merging and querying functionality."""
+"""Dictionary extended load/update/query features.
+
+Loads data from different sources using Loaders.
+Updates data with customizeable MergeStrategies.
+Queries data using Transformations.
+"""
 
 from . import merger
 from .errors import NoValidMergeStrategyFound
@@ -11,6 +16,13 @@ class Annotations:
     """Annotations for a FancyDict key
 
     Composed of a merge strategy, a merge condition and if the key is finalized
+
+    The merge method specifies a method
+    how values for this key gets merged with other values.
+
+    A conditions can block merging two values based on the old and new value.
+
+    If a key is finalized, the value cannot be updated anymore.
     """
     DEFAULTS = {
         "merge_method": merger.overwrite,
@@ -18,10 +30,18 @@ class Annotations:
         "finalized": False
     }
 
-    def __init__(self, **kwargs):
-        self._values = kwargs
+    def __init__(self, **values):
+        self._values = {}
+        for annotation, value in values.items():
+            if annotation in self.DEFAULTS:
+                self._values[annotation] = value
 
     def get(self, key):
+        """get the value of an annotation
+
+        Returns:
+            annotation value or None if not set
+        """
         return self._values.get(key)
 
     def __getattr__(self, item):
@@ -31,10 +51,18 @@ class Annotations:
             return default if value is None else value
         return super().__getattribute__(item)
 
-    def update(self, annotations):
+    def update(self, new_annotations):
+        """Updates annotations.
+
+        Updates only values which are set in the new annotations
+        and keeps the other values.
+
+        Args:
+            new_annotations: Annotations with value to update
+        """
         for key in self.DEFAULTS:
-            if annotations.get(key) is not None:
-                value = getattr(annotations, key)
+            if new_annotations.get(key) is not None:
+                value = getattr(new_annotations, key)
                 self._values[key] = value
 
 
@@ -57,17 +85,41 @@ class FancyDict(dict):
     )
 
     @classmethod
-    def load(cls, item, loader=Loader, **kwargs):
-        if isinstance(item, FancyDict):
-            return item
-        return loader(cls, **kwargs).load(item)
+    def load(cls, source, loader=Loader, **loader_kwargs):
+        """Loads FancyDicts from different sources.
+
+        Args:
+            source: Source specifier
+            loader: Loader class used to load from the given source
+            **loader_kwargs: Arguments for the Loader
+        Returns:
+            FancyDict with initialized data from given source
+        """
+        if isinstance(source, FancyDict):
+            return source
+        return loader(cls, **loader_kwargs).load(source)
 
     def __init__(self, __dct=None, **kwargs):
         super().__init__()
         self._annotations = {}
         self.update(__dct, **kwargs)
 
+    def __setitem__(self, key, value):
+        if isinstance(value, dict):
+            value = self.load(value)
+        super().__setitem__(key, value)
+
     def annotate(self, key, annotations=None, **kwargs):
+        """Adds Annotations for specific key.
+
+        Args:
+            key: name of the key
+            annotations: Annotations object with the annotions to add
+            **kwargs: arguments used to create an Annotations (optional)
+
+        Returns:
+
+        """
         if annotations or kwargs:
             annotations = Annotations(**kwargs) if annotations is None \
                 else annotations
@@ -77,18 +129,28 @@ class FancyDict(dict):
                 self._annotations[key] = annotations
 
     def get_annotations(self, key, default=None):
-        return self._annotations.get(key, default)
+        """Gets the Annotations for a key.
 
-    def __setitem__(self, key, value):
-        if isinstance(value, dict):
-            value = self.load(value)
-        super().__setitem__(key, value)
+        A default value is returned if no annotations are set for the key.
+
+        Args:
+            key: name of the key.
+            default: return value if no annotations for this key specified.
+
+        Returns:
+            Annotations for this key or default.
+        """
+        return self._annotations.get(key, default)
 
     def query(self, query, query_builder=StringQueryBuilder):
         """Runs a query on the FancyDict
 
+        If query is not a Query object,
+        the query_builder is used to create a Query.
+
         Args:
             query: query to run
+            query_builder: used to create a Query.
 
         Returns:
             query results
@@ -98,7 +160,37 @@ class FancyDict(dict):
         return query.apply(self)
 
     def update(self, __dct=None, **kwargs):
-        """Updates the FancyDict using the given merging strategies."""
+        """Updates the data using MergeStrategies and Annotations
+
+        When updating with a plain dict, they get first converted to FancyDicts
+
+        First key specific annotations get evaluated for each key
+        to check if and how the value for this key can be updated.
+
+        They are evaluated in the following order.
+        1. When a key is finalized, the value never gets updated.
+        2. The condition annotation based on old and new value gets evaluated
+            * the condition of the destination is used
+            * if there is none, the condition of the source is used
+            * if there is none, the default condition is used
+            * if the condition is false, the value gets not updated
+
+        If the value can be updated, the merge method is looked up the
+        in the following order:
+        1. merge method annotated in source
+        2. merge method annotated in destination
+        3. global merge strategies
+            * first the source merge strategies are evaluated
+            * second the destination merge strategies are evaluated
+            * the first merge strategy which applies to the old and new value
+              is used.
+
+        Args:
+            __dct: source dict to merge into destination (self)
+            **kwargs: key-value-pairs for source dict
+        Raises:
+            NoValidMergeStrategyFound if no valid MergeStrategy was found.
+        """
         if isinstance(__dct, dict):
             self._update_with_fancy_dict(self.load(__dct))
         if kwargs:
