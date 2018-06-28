@@ -7,7 +7,7 @@ import yaml
 from fancy_dict.errors import FileNotFoundInBaseDirs, \
     NoLoaderForSourceAvailable
 from fancy_dict import merger, conditions
-from fancy_dict import fancy_dict
+from fancy_dict.annotations import Annotations
 
 
 class AnnotationsDecoder:
@@ -70,7 +70,7 @@ class KeyAnnotationsConverter(AnnotationsEncoder, AnnotationsDecoder):
 
     @classmethod
     def decode(cls, key=None, value=None):
-        annotations = fancy_dict.Annotations(
+        annotations = Annotations(
             merge_method=cls._parse_merge_method(key),
             condition=cls._parse_condition(key),
             finalized=cls._parse_finalized(key),
