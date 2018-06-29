@@ -26,7 +26,7 @@ setup(
     license='MIT',
     packages=['fancy_dict'],
     install_requires=[
-        'pyyaml'
+        'PyYAML==3.12'
     ],
     include_package_data=True,
     zip_safe=False
