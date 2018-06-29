@@ -1,3 +1,4 @@
+import pytest
 import pycodestyle
 import pylint.lint
 import mypy.api
@@ -15,6 +16,7 @@ def test_pylint():
     assert 0 == pylint.lint.Run(args, exit=False).linter.msg_status
 
 
+@pytest.mark.skip()
 def test_mypy():
     out, err, result = mypy.api.run(["fancy_dict", "--strict"])
     print(out)

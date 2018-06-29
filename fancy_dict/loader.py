@@ -1,6 +1,9 @@
 """Loader and Dumper to serialize FancyDicts"""
 import re
+import urllib.request
+import urllib.parse
 from pathlib import Path
+from io import BytesIO
 
 import yaml
 
@@ -237,10 +240,18 @@ class FileLoader(DictLoader):
         return base_dict
 
     @staticmethod
+    def _path_exists(path):
+        """Hanldes OSError on Windows if URL is given as path"""
+        try:
+            return Path(path).exists()
+        except OSError:
+            return False
+
+    @staticmethod
     def _find_filepath(filename, base_dirs):
         for base_dir in base_dirs:
             full_path = Path(Path(base_dir) / Path(filename))
-            if full_path.exists():
+            if FileLoader._path_exists(full_path):
                 return full_path
         raise FileNotFoundInBaseDirs(filename, base_dirs)
 
@@ -260,6 +271,18 @@ class FileLoader(DictLoader):
         return base_dict
 
 
+class HttpLoader(DictLoader):
+    """Loads YAML/JSON files from an URL"""
+    @classmethod
+    def can_load(cls, source, **loader_args):
+        return urllib.parse.urlparse(source).scheme == "http"
+
+    def load(self, source, annotations_decoder=None):
+        content = urllib.request.urlopen(source).read()
+        data = yaml.load(BytesIO(content))
+        return super().load(data, annotations_decoder=annotations_decoder)
+
+
 class CompositeLoader(LoaderInterface):
     """Composition of different Loader
 
@@ -269,7 +292,8 @@ class CompositeLoader(LoaderInterface):
     """
     LOADER = [
         DictLoader,
-        FileLoader
+        FileLoader,
+        HttpLoader,
     ]
 
     def __init__(self, output_type, **loader_args):

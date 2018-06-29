@@ -6,7 +6,7 @@ import pytest
 import json
 
 from fancy_dict.loader import CompositeLoader, FileLoader, DictLoader, \
-    KeyAnnotationsConverter
+    KeyAnnotationsConverter, HttpLoader
 from fancy_dict.errors import FileNotFoundInBaseDirs, \
     NoLoaderForSourceAvailable
 from fancy_dict import conditions, FancyDict
@@ -122,6 +122,9 @@ class TestFileLoader:
             assert FileLoader.can_load("file.yml", base_dirs=[base_dir])
             assert not FileLoader.can_load("file.yml")
 
+    def test_can_load_false_if_url(self):
+        assert not FileLoader.can_load("http://www.test.de")
+
 
 class TestDictLoader:
     def test_load(self):
@@ -139,10 +142,24 @@ class TestDictLoader:
         assert not DictLoader.can_load("no")
 
 
+class TestHttpLoader:
+    def test_load(self, httpserver):
+        httpserver.serve_content("{'a': 1}")
+        assert {"a": 1} == HttpLoader(FancyDict).load(httpserver.url)
+
+    def test_can_load(self, httpserver):
+        httpserver.serve_content("{'a': 1}")
+        assert HttpLoader.can_load(httpserver.url)
+
+
 class TestDefaultLoader:
     def test_load_dict(self):
         loader = CompositeLoader(FancyDict)
         assert {"a": 1} == loader.load({"a": 1})
+
+    def test_load_from_http(self, httpserver):
+        httpserver.serve_content("{'a': 1}")
+        assert {"a": 1} == CompositeLoader(FancyDict).load(httpserver.url)
 
     def test_load_from_file(self, tmpdir):
         with file_structure({"file.yml": {"a": 1}}, tmpdir):
