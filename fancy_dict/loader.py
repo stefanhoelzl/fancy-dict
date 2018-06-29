@@ -231,7 +231,7 @@ class FileLoader(IoLoader):
     DEFAULT_BASE_DIRS = ('.',)
 
     def __init__(self, output_type,
-                 base_dirs=DEFAULT_BASE_DIRS, include_key="include"):
+                 base_dirs=DEFAULT_BASE_DIRS, include_key=None):
         super().__init__(output_type)
         self._base_dirs = base_dirs
         self._include_key = include_key

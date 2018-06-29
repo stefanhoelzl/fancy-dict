@@ -66,7 +66,7 @@ class TestFileLoader:
             "inc.yml": {"inc_key": "value"}
         }
         with file_structure(structure, tmpdir):
-            loader = FileLoader(FancyDict)
+            loader = FileLoader(FancyDict, include_key="include")
             result = {"key": "value", "inc_key": "value"}
             assert result == loader.load("file.yml")
 
@@ -76,7 +76,8 @@ class TestFileLoader:
             "inc.yml": {"A": "1"}
         }
         with file_structure(structure, tmpdir):
-            assert {"A": 0} == FileLoader(FancyDict).load("file.yml")
+            loader = FileLoader(FancyDict, include_key="include")
+            assert {"A": 0} == loader.load("file.yml")
 
     def test_custom_include_key(self, tmpdir):
         structure = {
@@ -109,7 +110,7 @@ class TestFileLoader:
                          }
         }
         with file_structure(structure, tmpdir):
-            loader = FileLoader(FancyDict)
+            loader = FileLoader(FancyDict, include_key="include")
             result = {"finalized": True, "counter": 4, "sub": {"yes": "YES"}}
             loaded = loader.load("file.yml",
                                  annotations_decoder=KeyAnnotationsConverter)
