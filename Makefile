@@ -7,11 +7,11 @@ clean:
 
 .PHONY: tests.unit
 tests.unit:
-	PYTHONPATH=. && pytest tests/unit
+	PYTHONPATH=. pytest tests/unit
 
 .PHONY: tests.lint
 tests.lint:
-	PYTHONPATH=. && pytest tests/lint
+	PYTHONPATH=. pytest tests/lint
 
 .PHONY: tests
 tests: tests.unit tests.lint
@@ -35,3 +35,6 @@ docs.build:
 
 .PHONY: all
 all: tests docs.build release.build
+
+.PHONY: ci
+ci: all

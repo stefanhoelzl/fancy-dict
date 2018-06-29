@@ -118,7 +118,7 @@ class TestFileLoader:
             "base": {"file.yml": {"key": "value"}}
         }
         with file_structure(structure, tmpdir):
-            base_dir = "\\".join((str(tmpdir), "base"))
+            base_dir = Path(str(tmpdir), "base")
             assert FileLoader.can_load("file.yml", base_dirs=[base_dir])
             assert not FileLoader.can_load("file.yml")
 

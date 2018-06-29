@@ -1,0 +1,10 @@
+language: python
+python:
+  - "3.6"
+os:
+  - linux
+  - osx
+install:
+  - make env.install
+script:
+  - make ci
