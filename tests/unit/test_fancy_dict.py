@@ -50,39 +50,29 @@ class TestLoad:
         assert fancy_dict.get_annotations("DECODED").finalized
 
 
-class TestGetAttr:
+class TestBuiltins:
     def test_getattr(self):
         assert 1 == FancyDict(key=1).key
 
+    def test_getitem_raises_if_none(self):
+        with pytest.raises(KeyError):
+            assert not FancyDict()["key"]
 
-class TestSetAttr:
-    def test_set(self):
+    def test_setattr(self):
         fancy_dict = FancyDict()
         fancy_dict.key = 1
-        assert 1 == fancy_dict["key"]
+        assert {"key": 1} == fancy_dict
 
-    def test_chained(self):
+    def test_getattr_defaults_to_fancy_dict(self):
         fancy_dict = FancyDict()
-        fancy_dict.main.sub = 1
-        assert 1 == fancy_dict["main"]["sub"]
+        assert isinstance(fancy_dict.main, FancyDict)
 
-
-class TestGetItem:
-    def test_get_of_temp(self):
-        fancy_dict = FancyDict()
-        assert {} == fancy_dict.temp
-        with pytest.raises(KeyError):
-            a = fancy_dict["temp"]
-            assert not a
-
-
-class TestSetItem:
-    def test_convert_dict_to_fancy_dict(self):
+    def test_setitem_convert_dict_to_fancy_dict(self):
         fancy_dict = FancyDict()
         fancy_dict["dict"] = {"key": "value"}
         assert isinstance(fancy_dict["dict"], FancyDict)
 
-    def test_use_same_merge_method_when_converting_dict(self):
+    def test_setitem_use_same_merge_method_when_converting_dict(self):
         fancy_dict = fancy_dict_with_merge_methods(
             MergeMethod(add, from_types=int),
             extend=True
@@ -91,7 +81,7 @@ class TestSetItem:
         fancy_dict.update(counters={"a": 1})
         assert 2 == fancy_dict["counters"]["a"]
 
-    def test_allow_change_even_if_finalized(self):
+    def test_setitem_allow_change_even_if_finalized(self):
         fancy_dict = FancyDict(finalized=1)
         fancy_dict.annotate("finalized",  Annotations(finalized=True))
         fancy_dict["finalized"] = 2
