@@ -28,7 +28,6 @@ release.upload: release.build
 env.install:
 	python -m pip install -r requirements.txt
 
-
 .PHONY: docs.build
 docs.build:
 	sphinx-build -W -b html docs docs/_build
