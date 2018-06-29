@@ -33,3 +33,5 @@ class TestMethods:
         assert [1, 2, 3, 4] == add([1, 2], [3, 4])
         assert "OLDNEW" == add("OLD", "NEW")
         assert 3 == add(1, 2)
+        assert 4 == add(None, 4)
+        assert 4 == add(4, None)
