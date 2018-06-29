@@ -13,8 +13,12 @@ tests.unit:
 tests.lint:
 	PYTHONPATH=. pytest tests/lint
 
+.PHONY: tests.coverage
+tests.coverage:
+	PYTHONPATH=. pytest --cov fancy_dict
+
 .PHONY: tests
-tests: tests.unit tests.lint
+tests: tests.unit tests.lint tests.coverage
 
 .PHONY: release.build
 release.build:
