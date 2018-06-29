@@ -33,11 +33,13 @@ class FancyDict(dict):
     )
 
     @classmethod
-    def load(cls, source, loader=CompositeLoader, **loader_kwargs):
+    def load(cls, source, annotations_decoder=None,
+             loader=CompositeLoader, **loader_kwargs):
         """Loads FancyDicts from different sources.
 
         Args:
             source: Source specifier
+            annotations_decoder: Decoder used for annotations
             loader: Loader class used to load from the given source
             **loader_kwargs: Arguments for the Loader
         Returns:
@@ -45,7 +47,9 @@ class FancyDict(dict):
         """
         if isinstance(source, FancyDict):
             return source
-        return loader(cls, **loader_kwargs).load(source)
+        return loader(cls, **loader_kwargs).load(
+            source, annotations_decoder=annotations_decoder
+        )
 
     def __init__(self, __dct=None, **kwargs):
         super().__init__()

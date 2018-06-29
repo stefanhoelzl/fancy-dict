@@ -34,6 +34,21 @@ class TestLoad:
         fancy_dict = FancyDict.load({"a": 1})
         assert {"a": 1} == fancy_dict
 
+    def test_load_pass_annotations_decoder(self):
+        class Decoder:
+            @classmethod
+            def decode(cls, key=None, value=None):
+                annotations = Annotations(finalized=True)
+                key = "DECODED"
+                return {
+                    "key": key,
+                    "value": value,
+                    "annotations": annotations
+                }
+        fancy_dict = FancyDict.load({"a": 1}, annotations_decoder=Decoder)
+        assert {"DECODED": 1} == fancy_dict
+        assert fancy_dict.get_annotations("DECODED").finalized
+
 
 class TestSetItem:
     def test_convert_dict_to_fancy_dict(self):
