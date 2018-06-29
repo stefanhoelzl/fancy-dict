@@ -41,13 +41,24 @@ Basics
 ```
 Load and merge annotated yaml/json files.
 ```python
+# Create directories later needed
+>>> import os
+>>> os.makedirs("inc")
+
+# Import used fancy_dict classes
 >>> from fancy_dict import FancyDict
 >>> from fancy_dict.loader import KeyAnnotationsConverter
->>> with open("base.yml", "w+") as base_file:
+
+# write settings defaults
+>>> with open("inc/base.yml", "w+") as base_file:
 >>>     base_file.write('{"counter[add]": 0, "settings": {"skip": True}}')
+
+# write custom settings
 >>> with open("config.yml", "w+") as config_file:
 >>>     config_file.write('{"include": ["base.yml"], "counter": 1, "settings": {"+skip": False, "?merge": True}}')
->>> FancyDict.load("config.yml", include_key="include", annotations_decoder=KeyAnnotationsConverter)
+
+# merge custom and default settings
+>>> FancyDict.load("config.yml", include_paths=("inc",), include_key="include", annotations_decoder=KeyAnnotationsConverter)
 {'counter': 1, 'settings': {'skip': True}}
 ```
 Annotate keys to control updating behavior
