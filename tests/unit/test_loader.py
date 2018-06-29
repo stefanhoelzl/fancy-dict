@@ -1,12 +1,13 @@
 import os
 from pathlib import Path
 from contextlib import contextmanager
+from io import StringIO
 
 import pytest
 import json
 
 from fancy_dict.loader import CompositeLoader, FileLoader, DictLoader, \
-    KeyAnnotationsConverter, HttpLoader
+    KeyAnnotationsConverter, HttpLoader, IoLoader
 from fancy_dict.errors import FileNotFoundInBaseDirs, \
     NoLoaderForSourceAvailable
 from fancy_dict import conditions, FancyDict
@@ -110,7 +111,8 @@ class TestFileLoader:
         with file_structure(structure, tmpdir):
             loader = FileLoader(FancyDict)
             result = {"finalized": True, "counter": 4, "sub": {"yes": "YES"}}
-            loaded = loader.load("file.yml")
+            loaded = loader.load("file.yml",
+                                 annotations_decoder=KeyAnnotationsConverter)
             assert result == loaded
 
     def test_can_load(self, tmpdir):
@@ -155,6 +157,14 @@ class TestHttpLoader:
         assert HttpLoader.can_load("https://www.google.de")
 
 
+class TestIoLoader:
+    def test_can_load(self):
+        assert IoLoader.can_load(StringIO(""))
+
+    def test_load(self):
+        assert {"a": 1} == IoLoader(FancyDict).load(StringIO('{"a": 1}'))
+
+
 class TestDefaultLoader:
     def test_load_dict(self):
         loader = CompositeLoader(FancyDict)
@@ -171,6 +181,10 @@ class TestDefaultLoader:
     def test_raise_when_no_loader_available(self):
         with pytest.raises(NoLoaderForSourceAvailable):
             CompositeLoader(FancyDict).load("no_file")
+
+    def test_load_from_io_object(self):
+        data_string = StringIO('{"a": 1}')
+        assert {"a": 1} == CompositeLoader(FancyDict).load(data_string)
 
 
 class TestKeyAnnotationsConverter:

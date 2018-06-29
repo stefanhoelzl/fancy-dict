@@ -3,7 +3,7 @@ import re
 import urllib.request
 import urllib.parse
 from pathlib import Path
-from io import BytesIO
+from io import IOBase
 
 import yaml
 
@@ -192,8 +192,8 @@ class DictLoader(LoaderInterface):
                 key, value = self._annotate(loaded_dict, key, value,
                                             annotations_decoder)
             if isinstance(value, dict):
-                value = DictLoader._load_without_running_annotations(
-                    self, value, annotations_decoder=annotations_decoder
+                value = self._load_without_running_annotations(
+                    value, annotations_decoder=annotations_decoder
                 )
             loaded_dict[key] = value
         return loaded_dict
@@ -207,7 +207,22 @@ class DictLoader(LoaderInterface):
         return key, value
 
 
-class FileLoader(DictLoader):
+class IoLoader(DictLoader):
+    """Loads a FancyDict from an IO-like object"""
+    @classmethod
+    def can_load(cls, source, **loader_args):
+        return isinstance(source, IOBase)
+
+    @staticmethod
+    def _load_dict(source):
+        return yaml.load(source)
+
+    def load(self, source, annotations_decoder=None):
+        data = self._load_dict(source)
+        return super().load(data, annotations_decoder=annotations_decoder)
+
+
+class FileLoader(IoLoader):
     """Loads a FancyDict from a YAML/JSON file
 
     Looks up files in given base directoies.
@@ -230,9 +245,9 @@ class FileLoader(DictLoader):
         except FileNotFoundInBaseDirs:
             return False
 
-    def load(self, source, annotations_decoder=KeyAnnotationsConverter):
+    def load(self, source, annotations_decoder=None):
         full_path = self._find_filepath(source, self._base_dirs)
-        dct = self._load_dict(full_path, annotations_decoder)
+        dct = self._load_fancy_dict(full_path, annotations_decoder)
         base_dict = self._build_base_dict_with_includes(
             dct.pop(self._include_key, ()), annotations_decoder
         )
@@ -255,10 +270,10 @@ class FileLoader(DictLoader):
                 return full_path
         raise FileNotFoundInBaseDirs(filename, base_dirs)
 
-    def _load_dict(self, full_path, annotations_decoder):
-        with open(full_path, "r") as yml_file:
+    def _load_fancy_dict(self, full_path, annotations_decoder):
+        with open(full_path, "r") as data_file:
             return super()._load_without_running_annotations(
-                yaml.load(yml_file),
+                super()._load_dict(data_file),
                 annotations_decoder=annotations_decoder
             )
 
@@ -271,7 +286,7 @@ class FileLoader(DictLoader):
         return base_dict
 
 
-class HttpLoader(DictLoader):
+class HttpLoader(IoLoader):
     """Loads YAML/JSON files from an URL"""
     @classmethod
     def can_load(cls, source, **loader_args):
@@ -279,8 +294,7 @@ class HttpLoader(DictLoader):
 
     def load(self, source, annotations_decoder=None):
         content = urllib.request.urlopen(source).read()
-        data = yaml.load(BytesIO(content))
-        return super().load(data, annotations_decoder=annotations_decoder)
+        return super().load(content, annotations_decoder=annotations_decoder)
 
 
 class CompositeLoader(LoaderInterface):
@@ -292,6 +306,7 @@ class CompositeLoader(LoaderInterface):
     """
     LOADER = [
         DictLoader,
+        IoLoader,
         FileLoader,
         HttpLoader,
     ]
