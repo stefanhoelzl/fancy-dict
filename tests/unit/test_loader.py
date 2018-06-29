@@ -138,6 +138,11 @@ class TestDictLoader:
         loader = DictLoader(FancyDict)
         assert {"a": 1} == loader.load({"a": 1})
 
+    def test_dict_in_lists_as_fancy_dict(self):
+        fancy_dict = DictLoader(FancyDict).load({"a": [{"b": 1}, "NO_DICT"]})
+        assert isinstance(fancy_dict["a"][0], FancyDict)
+        assert "NO_DICT" == fancy_dict["a"][1]
+
     def test_parse_annotations(self):
         loader = DictLoader(FancyDict)
         assert {"a": 1} == loader.load(

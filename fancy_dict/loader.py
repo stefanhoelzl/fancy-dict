@@ -194,6 +194,9 @@ class DictLoader(LoaderInterface):
                 value = self._load_without_running_annotations(
                     value, annotations_decoder=annotations_decoder
                 )
+            if isinstance(value, list):
+                value = [self.type(item) if isinstance(item, dict) else item
+                         for item in value]
             loaded_dict[key] = value
         return loaded_dict
 
