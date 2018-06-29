@@ -118,7 +118,7 @@ working towards the first release and better documentation!
 in progess...
 
 ## Contribution
-* **There is a bug?** Write me an [Issue](https://github.com/stefanhoelzl/fancy-dict/issues)
+* **There is a bug?** Write an [Issue](https://github.com/stefanhoelzl/fancy-dict/issues)
 * **You like it?** Great!! Spread the news :)
 
 ### Submit changes
