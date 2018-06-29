@@ -8,8 +8,7 @@ import json
 
 from fancy_dict.loader import CompositeLoader, FileLoader, DictLoader, \
     KeyAnnotationsConverter, HttpLoader, IoLoader
-from fancy_dict.errors import FileNotFoundInBaseDirs, \
-    NoLoaderForSourceAvailable
+from fancy_dict.errors import NoLoaderForSourceAvailable
 from fancy_dict import conditions, FancyDict
 
 
@@ -45,20 +44,26 @@ class TestFileLoader:
         with file_structure({"dir": {"file.yml": {"a": 1}}}, tmpdir):
             assert {"a": 1} == FileLoader(FancyDict).load("dir/file.yml")
 
-    def test_single_file_multiple_bases(self, tmpdir):
-        structure = {
-            "dirA": {"fileA.yml": {"A": 1}},
-            "dirB": {"fileB.yml": {"B": 1}},
-        }
-        with file_structure(structure, tmpdir):
-            base_dirs = [Path(tmpdir) / "dirA", Path(tmpdir) / "dirB"]
-            assert {"B": 1} == FileLoader(FancyDict,
-                                          base_dirs).load("fileB.yml")
-
     def test_raise_file_not_found(self, tmpdir):
         with file_structure({"file.yml": {"a": 1}}, tmpdir):
-            with pytest.raises(FileNotFoundInBaseDirs):
+            with pytest.raises(FileNotFoundError):
                 FileLoader(FancyDict).load("no_file.yml")
+
+    def test_raise_file_not_found_but_in_bases(self, tmpdir):
+        structure = {
+            "inc": {"file.yml": {"include": ["inc.yml"], "key": "value"}}
+        }
+        with file_structure(structure, tmpdir):
+            with pytest.raises(FileNotFoundError):
+                FileLoader(FancyDict, include_paths=("inc",)).load("file.yml")
+
+    def test_raise_include_file_not_found(self, tmpdir):
+        structure = {
+            "file.yml": {"include": ["inc.yml"], "key": "value"}
+        }
+        with file_structure(structure, tmpdir):
+            with pytest.raises(FileNotFoundError):
+                FileLoader(FancyDict, include_key="include").load("file.yml")
 
     def test_include_file(self, tmpdir):
         structure = {
@@ -121,8 +126,7 @@ class TestFileLoader:
             "base": {"file.yml": {"key": "value"}}
         }
         with file_structure(structure, tmpdir):
-            base_dir = Path(str(tmpdir), "base")
-            assert FileLoader.can_load("file.yml", base_dirs=[base_dir])
+            assert FileLoader.can_load(Path("base", "file.yml"))
             assert not FileLoader.can_load("file.yml")
 
     def test_can_load_false_if_url(self):
