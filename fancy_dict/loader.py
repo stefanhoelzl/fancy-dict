@@ -275,7 +275,7 @@ class HttpLoader(DictLoader):
     """Loads YAML/JSON files from an URL"""
     @classmethod
     def can_load(cls, source, **loader_args):
-        return urllib.parse.urlparse(source).scheme == "http"
+        return urllib.parse.urlparse(source).scheme in ["http", "https"]
 
     def load(self, source, annotations_decoder=None):
         content = urllib.request.urlopen(source).read()

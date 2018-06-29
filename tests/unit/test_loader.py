@@ -151,6 +151,9 @@ class TestHttpLoader:
         httpserver.serve_content("{'a': 1}")
         assert HttpLoader.can_load(httpserver.url)
 
+    def test_can_load_https(self):
+        assert HttpLoader.can_load("https://www.google.de")
+
 
 class TestDefaultLoader:
     def test_load_dict(self):

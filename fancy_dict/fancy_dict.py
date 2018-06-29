@@ -13,7 +13,7 @@ from .annotations import Annotations
 
 
 class FancyDict(dict):
-    """Extends dict by merging methods and querying functionality.
+    """Extends dict by merging methods, querying and loading functionality.
 
     Merging methods can define custom behavior how to merge certain values
     in the dict.
@@ -23,6 +23,8 @@ class FancyDict(dict):
     Keys can be marked as finalizedd to avoid future updates.
 
     Queries allow it to retrieve values deep inside the dict.
+
+    Loader allow it to load data from various sources.
     """
     MERGE_METHODS = (
         merger.MergeMethod(merger.update,
