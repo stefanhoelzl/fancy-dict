@@ -39,7 +39,7 @@ Basics
 >>> list(repo.query("owner.avatar_url"))
 ['https://avatars0.githubusercontent.com/u/254659']
 ```
-Load annotated dicts from files
+Load and merge annotated yaml/json files.
 ```python
 >>> from fancy_dict import FancyDict
 >>> from fancy_dict.loader import KeyAnnotationsConverter
