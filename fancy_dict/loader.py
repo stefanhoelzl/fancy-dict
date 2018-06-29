@@ -323,7 +323,9 @@ class CompositeLoader(LoaderInterface):
         loader_type = self._select_loader_type(source, self.loader_args)
         if loader_type is None:
             raise NoLoaderForSourceAvailable(source)
-        return loader_type(self.type).load(source, annotations_decoder)
+        return loader_type(self.type, **self.loader_args).load(
+            source, annotations_decoder
+        )
 
     @classmethod
     def _select_loader_type(cls, source, loader_args):

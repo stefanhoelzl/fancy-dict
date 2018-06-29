@@ -166,7 +166,7 @@ class TestIoLoader:
         assert {"a": 1} == IoLoader(FancyDict).load(StringIO('{"a": 1}'))
 
 
-class TestDefaultLoader:
+class TestCompositeLoader:
     def test_load_dict(self):
         loader = CompositeLoader(FancyDict)
         assert {"a": 1} == loader.load({"a": 1})
@@ -186,6 +186,16 @@ class TestDefaultLoader:
     def test_load_from_io_object(self):
         data_string = StringIO('{"a": 1}')
         assert {"a": 1} == CompositeLoader(FancyDict).load(data_string)
+
+    def test_pass_args_to_sub_loader(self, tmpdir):
+        structure = {
+            "file.yml": {"include": ["inc.yml"]},
+            "inc.yml": {"key": "value"}
+        }
+        with file_structure(structure, tmpdir):
+            loader = CompositeLoader(FancyDict, include_key="include")
+            result = {"key": "value"}
+            assert result == loader.load("file.yml")
 
 
 class TestKeyAnnotationsConverter:
