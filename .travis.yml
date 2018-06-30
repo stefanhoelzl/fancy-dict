@@ -8,3 +8,5 @@ script:
   - make ci
 after_success:
   - coveralls
+after_script:
+  - python ci-results.py

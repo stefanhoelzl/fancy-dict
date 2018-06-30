@@ -11,14 +11,14 @@ tests.unit:
 
 .PHONY: tests.coverage
 tests.coverage:
-	PYTHONPATH=. pytest --cov fancy_dict --cov-report html:.covhtml
+	PYTHONPATH=. pytest --cov fancy_dict --cov-report html:covhtml
 
 .PHONY: tests.lint
 tests.lint:
 	PYTHONPATH=. pytest tests/lint
 
 .PHONY: tests
-tests: tests.unit tests.lint tests.coverage
+tests: tests.lint tests.unit tests.coverage
 
 .PHONY: release.build
 release.build:
