@@ -3,7 +3,10 @@ default: all;
 
 .PHONY: clean
 clean:
-	rm -rf build dist fancy_dict.egg-info .mpy_cache .pytest_cache docs/_build .htmlcov
+	rm -rf build dist fancy_dict.egg-info \
+	.mpy_cache tests/.pytest_cache \
+	docs/_build \
+	covhtml .coverage testresults.tap
 
 .PHONY: tests.unit
 tests.unit:
