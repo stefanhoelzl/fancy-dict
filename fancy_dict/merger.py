@@ -79,4 +79,8 @@ def add(old, new):
     Returns:
         extended old value
     """
+    if old is None:
+        return new
+    if new is None:
+        return old
     return old + new

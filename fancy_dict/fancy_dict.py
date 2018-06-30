@@ -26,6 +26,7 @@ class FancyDict(dict):
 
     Loader allow it to load data from various sources.
     """
+    __slots__ = ["_annotations"]
     MERGE_METHODS = (
         merger.MergeMethod(merger.update,
                            from_types=dict, to_types=dict),
@@ -33,11 +34,13 @@ class FancyDict(dict):
     )
 
     @classmethod
-    def load(cls, source, loader=CompositeLoader, **loader_kwargs):
+    def load(cls, source, annotations_decoder=None,
+             loader=CompositeLoader, **loader_kwargs):
         """Loads FancyDicts from different sources.
 
         Args:
             source: Source specifier
+            annotations_decoder: Decoder used for annotations
             loader: Loader class used to load from the given source
             **loader_kwargs: Arguments for the Loader
         Returns:
@@ -45,7 +48,9 @@ class FancyDict(dict):
         """
         if isinstance(source, FancyDict):
             return source
-        return loader(cls, **loader_kwargs).load(source)
+        return loader(cls, **loader_kwargs).load(
+            source, annotations_decoder=annotations_decoder
+        )
 
     def __init__(self, __dct=None, **kwargs):
         super().__init__()
@@ -56,6 +61,17 @@ class FancyDict(dict):
         if isinstance(value, dict):
             value = self.load(value)
         super().__setitem__(key, value)
+
+    def __setattr__(self, key, value):
+        if hasattr(type(self), key) or key in FancyDict.__slots__:
+            super().__setattr__(key, value)
+        else:
+            self[key] = value
+
+    def __getattr__(self, item):
+        if item not in self:
+            self[item] = type(self)()
+        return self[item]
 
     def annotate(self, key, annotations=None, **kwargs):
         """Adds Annotations for specific key.

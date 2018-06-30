@@ -1,14 +1,14 @@
 import os
 from pathlib import Path
 from contextlib import contextmanager
+from io import StringIO
 
 import pytest
 import json
 
 from fancy_dict.loader import CompositeLoader, FileLoader, DictLoader, \
-    KeyAnnotationsConverter, HttpLoader
-from fancy_dict.errors import FileNotFoundInBaseDirs, \
-    NoLoaderForSourceAvailable
+    KeyAnnotationsConverter, HttpLoader, IoLoader
+from fancy_dict.errors import NoLoaderForSourceAvailable
 from fancy_dict import conditions, FancyDict
 
 
@@ -44,20 +44,26 @@ class TestFileLoader:
         with file_structure({"dir": {"file.yml": {"a": 1}}}, tmpdir):
             assert {"a": 1} == FileLoader(FancyDict).load("dir/file.yml")
 
-    def test_single_file_multiple_bases(self, tmpdir):
-        structure = {
-            "dirA": {"fileA.yml": {"A": 1}},
-            "dirB": {"fileB.yml": {"B": 1}},
-        }
-        with file_structure(structure, tmpdir):
-            base_dirs = [Path(tmpdir) / "dirA", Path(tmpdir) / "dirB"]
-            assert {"B": 1} == FileLoader(FancyDict,
-                                          base_dirs).load("fileB.yml")
-
     def test_raise_file_not_found(self, tmpdir):
         with file_structure({"file.yml": {"a": 1}}, tmpdir):
-            with pytest.raises(FileNotFoundInBaseDirs):
+            with pytest.raises(FileNotFoundError):
                 FileLoader(FancyDict).load("no_file.yml")
+
+    def test_raise_file_not_found_but_in_bases(self, tmpdir):
+        structure = {
+            "inc": {"file.yml": {"include": ["inc.yml"], "key": "value"}}
+        }
+        with file_structure(structure, tmpdir):
+            with pytest.raises(FileNotFoundError):
+                FileLoader(FancyDict, include_paths=("inc",)).load("file.yml")
+
+    def test_raise_include_file_not_found(self, tmpdir):
+        structure = {
+            "file.yml": {"include": ["inc.yml"], "key": "value"}
+        }
+        with file_structure(structure, tmpdir):
+            with pytest.raises(FileNotFoundError):
+                FileLoader(FancyDict, include_key="include").load("file.yml")
 
     def test_include_file(self, tmpdir):
         structure = {
@@ -65,7 +71,7 @@ class TestFileLoader:
             "inc.yml": {"inc_key": "value"}
         }
         with file_structure(structure, tmpdir):
-            loader = FileLoader(FancyDict)
+            loader = FileLoader(FancyDict, include_key="include")
             result = {"key": "value", "inc_key": "value"}
             assert result == loader.load("file.yml")
 
@@ -75,7 +81,8 @@ class TestFileLoader:
             "inc.yml": {"A": "1"}
         }
         with file_structure(structure, tmpdir):
-            assert {"A": 0} == FileLoader(FancyDict).load("file.yml")
+            loader = FileLoader(FancyDict, include_key="include")
+            assert {"A": 0} == loader.load("file.yml")
 
     def test_custom_include_key(self, tmpdir):
         structure = {
@@ -108,9 +115,10 @@ class TestFileLoader:
                          }
         }
         with file_structure(structure, tmpdir):
-            loader = FileLoader(FancyDict)
+            loader = FileLoader(FancyDict, include_key="include")
             result = {"finalized": True, "counter": 4, "sub": {"yes": "YES"}}
-            loaded = loader.load("file.yml")
+            loaded = loader.load("file.yml",
+                                 annotations_decoder=KeyAnnotationsConverter)
             assert result == loaded
 
     def test_can_load(self, tmpdir):
@@ -118,8 +126,7 @@ class TestFileLoader:
             "base": {"file.yml": {"key": "value"}}
         }
         with file_structure(structure, tmpdir):
-            base_dir = Path(str(tmpdir), "base")
-            assert FileLoader.can_load("file.yml", base_dirs=[base_dir])
+            assert FileLoader.can_load(Path("base", "file.yml"))
             assert not FileLoader.can_load("file.yml")
 
     def test_can_load_false_if_url(self):
@@ -130,6 +137,11 @@ class TestDictLoader:
     def test_load(self):
         loader = DictLoader(FancyDict)
         assert {"a": 1} == loader.load({"a": 1})
+
+    def test_dict_in_lists_as_fancy_dict(self):
+        fancy_dict = DictLoader(FancyDict).load({"a": [{"b": 1}, "NO_DICT"]})
+        assert isinstance(fancy_dict["a"][0], FancyDict)
+        assert "NO_DICT" == fancy_dict["a"][1]
 
     def test_parse_annotations(self):
         loader = DictLoader(FancyDict)
@@ -155,7 +167,15 @@ class TestHttpLoader:
         assert HttpLoader.can_load("https://www.google.de")
 
 
-class TestDefaultLoader:
+class TestIoLoader:
+    def test_can_load(self):
+        assert IoLoader.can_load(StringIO(""))
+
+    def test_load(self):
+        assert {"a": 1} == IoLoader(FancyDict).load(StringIO('{"a": 1}'))
+
+
+class TestCompositeLoader:
     def test_load_dict(self):
         loader = CompositeLoader(FancyDict)
         assert {"a": 1} == loader.load({"a": 1})
@@ -171,6 +191,20 @@ class TestDefaultLoader:
     def test_raise_when_no_loader_available(self):
         with pytest.raises(NoLoaderForSourceAvailable):
             CompositeLoader(FancyDict).load("no_file")
+
+    def test_load_from_io_object(self):
+        data_string = StringIO('{"a": 1}')
+        assert {"a": 1} == CompositeLoader(FancyDict).load(data_string)
+
+    def test_pass_args_to_sub_loader(self, tmpdir):
+        structure = {
+            "file.yml": {"include": ["inc.yml"]},
+            "inc.yml": {"key": "value"}
+        }
+        with file_structure(structure, tmpdir):
+            loader = CompositeLoader(FancyDict, include_key="include")
+            result = {"key": "value"}
+            assert result == loader.load("file.yml")
 
 
 class TestKeyAnnotationsConverter:

@@ -3,12 +3,11 @@ import re
 import urllib.request
 import urllib.parse
 from pathlib import Path
-from io import BytesIO
+from io import IOBase
 
 import yaml
 
-from fancy_dict.errors import FileNotFoundInBaseDirs, \
-    NoLoaderForSourceAvailable
+from fancy_dict.errors import NoLoaderForSourceAvailable
 from fancy_dict import merger, conditions
 from fancy_dict.annotations import Annotations
 
@@ -147,7 +146,7 @@ class LoaderInterface:
         self.type = output_type
 
     @classmethod
-    def can_load(cls, source, **loader_args):
+    def can_load(cls, source):
         """Checks if the loader can load the given source
 
         Args:
@@ -177,7 +176,7 @@ class LoaderInterface:
 class DictLoader(LoaderInterface):
     """Loads a dict as FancyDict"""
     @classmethod
-    def can_load(cls, source, **loader_args):
+    def can_load(cls, source):
         return isinstance(source, dict)
 
     def load(self, source, annotations_decoder=None):
@@ -192,9 +191,12 @@ class DictLoader(LoaderInterface):
                 key, value = self._annotate(loaded_dict, key, value,
                                             annotations_decoder)
             if isinstance(value, dict):
-                value = DictLoader._load_without_running_annotations(
-                    self, value, annotations_decoder=annotations_decoder
+                value = self._load_without_running_annotations(
+                    value, annotations_decoder=annotations_decoder
                 )
+            if isinstance(value, list):
+                value = [self.type(item) if isinstance(item, dict) else item
+                         for item in value]
             loaded_dict[key] = value
         return loaded_dict
 
@@ -207,32 +209,41 @@ class DictLoader(LoaderInterface):
         return key, value
 
 
-class FileLoader(DictLoader):
+class IoLoader(DictLoader):
+    """Loads a FancyDict from an IO-like object"""
+    @classmethod
+    def can_load(cls, source):
+        return isinstance(source, IOBase)
+
+    @staticmethod
+    def _load_dict(source):
+        return yaml.load(source)
+
+    def load(self, source, annotations_decoder=None):
+        data = self._load_dict(source)
+        return super().load(data, annotations_decoder=annotations_decoder)
+
+
+class FileLoader(IoLoader):
     """Loads a FancyDict from a YAML/JSON file
 
     Looks up files in given base directoies.
     Supports a special include key to include other files.
     """
-    DEFAULT_BASE_DIRS = ('.',)
+    DEFAULT_INCLUDE_PATHS = ('.',)
 
     def __init__(self, output_type,
-                 base_dirs=DEFAULT_BASE_DIRS, include_key="include"):
+                 include_paths=DEFAULT_INCLUDE_PATHS, include_key=None):
         super().__init__(output_type)
-        self._base_dirs = base_dirs
+        self._include_paths = include_paths
         self._include_key = include_key
 
     @classmethod
-    def can_load(cls, source, **loader_args):
-        base_dirs = loader_args.get("base_dirs", cls.DEFAULT_BASE_DIRS)
-        try:
-            FileLoader._find_filepath(source, base_dirs=base_dirs)
-            return True
-        except FileNotFoundInBaseDirs:
-            return False
+    def can_load(cls, source):
+        return cls._path_exists(source)
 
-    def load(self, source, annotations_decoder=KeyAnnotationsConverter):
-        full_path = self._find_filepath(source, self._base_dirs)
-        dct = self._load_dict(full_path, annotations_decoder)
+    def load(self, source, annotations_decoder=None):
+        dct = self._load_fancy_dict(source, annotations_decoder)
         base_dict = self._build_base_dict_with_includes(
             dct.pop(self._include_key, ()), annotations_decoder
         )
@@ -248,39 +259,39 @@ class FileLoader(DictLoader):
             return False
 
     @staticmethod
-    def _find_filepath(filename, base_dirs):
-        for base_dir in base_dirs:
+    def _find_filepath(filename, include_paths):
+        for base_dir in include_paths:
             full_path = Path(Path(base_dir) / Path(filename))
             if FileLoader._path_exists(full_path):
                 return full_path
-        raise FileNotFoundInBaseDirs(filename, base_dirs)
+        raise FileNotFoundError(filename)
 
-    def _load_dict(self, full_path, annotations_decoder):
-        with open(full_path, "r") as yml_file:
+    def _load_fancy_dict(self, full_path, annotations_decoder):
+        with open(full_path, "r") as data_file:
             return super()._load_without_running_annotations(
-                yaml.load(yml_file),
+                super()._load_dict(data_file),
                 annotations_decoder=annotations_decoder
             )
 
     def _build_base_dict_with_includes(self, includes, annotations_decoder):
         base_dict = self.type()
         for include in includes:
+            full_path = self._find_filepath(include, self._include_paths)
             base_dict.update(
-                self.load(include, annotations_decoder=annotations_decoder)
+                self.load(full_path, annotations_decoder=annotations_decoder)
             )
         return base_dict
 
 
-class HttpLoader(DictLoader):
+class HttpLoader(IoLoader):
     """Loads YAML/JSON files from an URL"""
     @classmethod
-    def can_load(cls, source, **loader_args):
+    def can_load(cls, source):
         return urllib.parse.urlparse(source).scheme in ["http", "https"]
 
     def load(self, source, annotations_decoder=None):
         content = urllib.request.urlopen(source).read()
-        data = yaml.load(BytesIO(content))
-        return super().load(data, annotations_decoder=annotations_decoder)
+        return super().load(content, annotations_decoder=annotations_decoder)
 
 
 class CompositeLoader(LoaderInterface):
@@ -292,6 +303,7 @@ class CompositeLoader(LoaderInterface):
     """
     LOADER = [
         DictLoader,
+        IoLoader,
         FileLoader,
         HttpLoader,
     ]
@@ -301,18 +313,20 @@ class CompositeLoader(LoaderInterface):
         self.loader_args = loader_args
 
     @classmethod
-    def can_load(cls, source, **loader_args):
-        return cls._select_loader_type(source, loader_args) is not None
+    def can_load(cls, source):
+        return cls._select_loader_type(source) is not None
 
     def load(self, source, annotations_decoder=None):
-        loader_type = self._select_loader_type(source, self.loader_args)
+        loader_type = self._select_loader_type(source)
         if loader_type is None:
             raise NoLoaderForSourceAvailable(source)
-        return loader_type(self.type).load(source, annotations_decoder)
+        return loader_type(self.type, **self.loader_args).load(
+            source, annotations_decoder
+        )
 
     @classmethod
-    def _select_loader_type(cls, source, loader_args):
+    def _select_loader_type(cls, source):
         for loader in cls.LOADER:
-            if loader.can_load(source, **loader_args):
+            if loader.can_load(source):
                 return loader
         return None

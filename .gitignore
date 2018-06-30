@@ -6,3 +6,7 @@ dist
 fancy_dict.egg-info
 docs/_build
 .mypy_cache
+.coverage
+covhtml
+ci-results
+testresults.tap
