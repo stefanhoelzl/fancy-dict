@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/stefanhoelzl/fancy-dict.svg?branch=master)](https://travis-ci.org/stefanhoelzl/fancy-dict)
 [![Coverage Status](https://coveralls.io/repos/github/stefanhoelzl/fancy-dict/badge.svg?branch=master)](https://coveralls.io/github/stefanhoelzl/fancy-dict?branch=master)
-[![Test Status](https://raw.githubusercontent.com/stefanhoelzl/fancy-dict/ci-results/wip/tests.png)](https://github.com/stefanhoelzl/fancy-dict/blob/ci-results/master/testresults.tap)
+[![Test Status](https://raw.githubusercontent.com/stefanhoelzl/fancy-dict/ci-results/master/tests.png)](https://github.com/stefanhoelzl/fancy-dict/blob/ci-results/master/testresults.tap)
 
 **Extends python dictionaries with merging, loading and querying functions**
 
