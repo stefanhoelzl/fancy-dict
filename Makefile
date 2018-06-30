@@ -3,18 +3,22 @@ default: all;
 
 .PHONY: clean
 clean:
-	rm -rf build dist fancy_dict.egg-info .mpy_cache .pytest_cache docs/_build
+	rm -rf build dist fancy_dict.egg-info .mpy_cache .pytest_cache docs/_build .htmlcov
 
 .PHONY: tests.unit
 tests.unit:
-	PYTHONPATH=. pytest tests/unit --cov fancy_dict --cov-report term-missing
+	PYTHONPATH=. pytest tests/unit
+
+.PHONY: tests.coverage
+tests.coverage:
+	PYTHONPATH=. pytest --cov fancy_dict --cov-report html:.covhtml
 
 .PHONY: tests.lint
 tests.lint:
 	PYTHONPATH=. pytest tests/lint
 
 .PHONY: tests
-tests: tests.unit tests.lint
+tests: tests.unit tests.lint tests.coverage
 
 .PHONY: release.build
 release.build:

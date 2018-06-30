@@ -7,3 +7,4 @@ fancy_dict.egg-info
 docs/_build
 .mypy_cache
 .coverage
+.covhtml
