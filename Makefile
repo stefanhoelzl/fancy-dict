@@ -7,18 +7,14 @@ clean:
 
 .PHONY: tests.unit
 tests.unit:
-	PYTHONPATH=. pytest tests/unit
+	PYTHONPATH=. pytest tests/unit --cov fancy_dict --cov-report term-missing
 
 .PHONY: tests.lint
 tests.lint:
 	PYTHONPATH=. pytest tests/lint
 
-.PHONY: tests.coverage
-tests.coverage:
-	PYTHONPATH=. pytest --cov fancy_dict
-
 .PHONY: tests
-tests: tests.unit tests.lint tests.coverage
+tests: tests.unit tests.lint
 
 .PHONY: release.build
 release.build:
