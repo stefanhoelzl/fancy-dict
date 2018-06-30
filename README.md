@@ -141,7 +141,7 @@ Write a failing test, make your changes until all tests pass
 ```bash
 $ make tests           # runs all tests
 $ make tests.unit      # runs only unit tests
-$ make test.lint       # runs only linter
+$ make tests.lint       # runs only linter
 $ make tests.coverage  # runs only code coverage
 ```
 Before making a pull request, check if still everythinig builds
