@@ -50,6 +50,11 @@ class FancyDict(dict):
             source, annotations_decoder=annotations_decoder
         )
 
+    def __new__(cls, *args, **kwargs):
+        if args and isinstance(args[0], list):
+            return [FancyDict(item) for item in args[0]]
+        return super().__new__(cls, *args, **kwargs)
+
     def __init__(self, __dct=None, **kwargs):
         super().__init__()
         self._annotations = {}

@@ -15,6 +15,11 @@ def fancy_dict_with_merge_methods(*methods, extend=False):
     return _FancyDict()
 
 
+class TestNew:
+    def test_init_with_list(self):
+        assert [{"a": 1}, {"b": 1}] == FancyDict([{"a": 1}, {"b": 1}])
+
+
 class TestInit:
     def test_with_dict(self):
         assert {"a": 1} == FancyDict({"a": 1})
