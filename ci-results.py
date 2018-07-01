@@ -5,6 +5,7 @@ from contextlib import contextmanager
 
 from anybadge import Badge
 from git import Repo
+import cairosvg
 
 
 CI = os.environ.get("CI", False)
@@ -59,8 +60,12 @@ def create_test_results_badge():
         color = "orange"
     badge = Badge('tests', value, default_color=color)
     badge_path = Path(DESTINATION) / "tests.svg"
+    png_path = Path(DESTINATION) / "tests.png"
     badge.write_badge(str(badge_path), overwrite=True)
+    cairosvg.svg2png(url=str(badge_path),
+                     write_to=str(png_path))
     CREATED_FILES.append(str(badge_path.absolute()))
+    CREATED_FILES.append(str(png_path.absolute()))
 
 
 def copy_test_results():

@@ -3,7 +3,10 @@ default: all;
 
 .PHONY: clean
 clean:
-	rm -rf build dist fancy_dict.egg-info .mpy_cache .pytest_cache docs/_build .htmlcov
+	rm -rf build dist fancy_dict.egg-info \
+	.mpy_cache tests/.pytest_cache \
+	docs/_build \
+	covhtml .coverage testresults.tap
 
 .PHONY: tests.unit
 tests.unit:
@@ -16,6 +19,12 @@ tests.coverage:
 .PHONY: tests.lint
 tests.lint:
 	PYTHONPATH=. pytest tests/lint
+
+.PHONY: tests.doc
+tests.doc:
+	rm -Rf inc
+	PYTHONPATH=. pytest README.md --doctest-glob="*.md"
+	PYTHONPATH=. pytest docs --doctest-glob="*.md,*.rst"
 
 .PHONY: tests
 tests: tests.lint tests.unit tests.coverage

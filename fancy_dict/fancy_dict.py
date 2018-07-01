@@ -1,19 +1,17 @@
-"""Dictionary extended load/update/query features.
+"""Dictionary extended load/update/filter features.
 
 Loads data from different sources using Loaders.
 Updates data with customizeable MergeMethods.
 Queries data using Transformations.
 """
-
 from . import merger
 from .errors import NoMergeMethodApplies
-from .query import StringQueryBuilder, Query
 from .loader import CompositeLoader
 from .annotations import Annotations
 
 
 class FancyDict(dict):
-    """Extends dict by merging methods, querying and loading functionality.
+    """Extends dict by merge methods, filter and load functionality.
 
     Merging methods can define custom behavior how to merge certain values
     in the dict.
@@ -51,6 +49,11 @@ class FancyDict(dict):
         return loader(cls, **loader_kwargs).load(
             source, annotations_decoder=annotations_decoder
         )
+
+    def __new__(cls, *args, **kwargs):
+        if args and isinstance(args[0], list):
+            return [FancyDict(item) for item in args[0]]
+        return super().__new__(cls, *args, **kwargs)
 
     def __init__(self, __dct=None, **kwargs):
         super().__init__()
@@ -106,22 +109,33 @@ class FancyDict(dict):
         """
         return self._annotations.get(key, default)
 
-    def query(self, query, query_builder=StringQueryBuilder):
-        """Runs a query on the FancyDict
+    def filter(self, filter_method, recursive=False, flat=False):
+        """Returns a filtered FancyDict
 
-        If query is not a Query object,
-        the query_builder is used to create a Query.
+        filter_method must be a method with two parameters.
+        filter_method returns True or False for a given pair of key/value.
+        If filter_method returns True,
+        the key/value pair is added to the filtered dict.
 
         Args:
-            query: query to run
-            query_builder: used to create a Query.
+            filter_method: determines if key/value pair gets into return
+            recursive: searches recursive into sub dicts
+            flat: if recursive, flattens the result
 
         Returns:
-            query results
+            FancyDict with filtered content
         """
-        if not isinstance(query, Query):
-            query = query_builder(query).build()
-        return query.apply(self)
+        result = FancyDict()
+        for key, value in self.items():
+            if isinstance(value, FancyDict) and recursive:
+                if flat:
+                    result.update(value.filter(filter_method,
+                                               recursive=True, flat=True))
+                else:
+                    result[key] = value.filter(filter_method, recursive=True)
+            elif filter_method(key, value):
+                result[key] = value
+        return result
 
     def update(self, __dct=None, **kwargs):
         """Updates the data using MergeMethods and Annotations

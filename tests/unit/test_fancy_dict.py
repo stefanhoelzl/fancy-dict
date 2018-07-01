@@ -15,6 +15,11 @@ def fancy_dict_with_merge_methods(*methods, extend=False):
     return _FancyDict()
 
 
+class TestNew:
+    def test_init_with_list(self):
+        assert [{"a": 1}, {"b": 1}] == FancyDict([{"a": 1}, {"b": 1}])
+
+
 class TestInit:
     def test_with_dict(self):
         assert {"a": 1} == FancyDict({"a": 1})
@@ -208,7 +213,39 @@ class TestUpdateWithFancyDict:
         assert 1 == fancy_dict["key"]
 
 
-class TestQuery:
-    def test_query_string(self):
-        fancy_dict = FancyDict({"key": {"sub": 1}})
-        assert 1 == next(fancy_dict.query("key.sub"))
+class TestFilter:
+    def test_filter_by_key(self):
+        fancy_dict = FancyDict(filter_key=1, another_key=0)
+        assert {"filter_key": 1} == fancy_dict.filter(
+            lambda k, v: k is "filter_key"
+        )
+
+    def test_filter_by_value(self):
+        fancy_dict = FancyDict(filter_key=1, another_key=0)
+        assert {"filter_key": 1} == fancy_dict.filter(
+            lambda k, v: v is 1
+        )
+
+    def test_filter_recursive(self):
+        fancy_dict = FancyDict(
+            key=FancyDict(
+                filter_key=1,
+                another_key=0
+            )
+        )
+        assert {"key": {"filter_key": 1}} == fancy_dict.filter(
+            lambda k, v: k is "filter_key",
+            recursive=True
+        )
+
+    def test_filter_recursive_and_flat(self):
+        fancy_dict = FancyDict(
+            key=FancyDict(
+                filter_key=1,
+                another_key=0
+            )
+        )
+        assert {"filter_key": 1} == fancy_dict.filter(
+            lambda k, v: k is "filter_key",
+            recursive=True, flat=True
+        )

@@ -151,7 +151,6 @@ class LoaderInterface:
 
         Args:
             source: source to load
-            loader_args: arguments for the loader
 
         Returns:
             True if Loader can load the source else False
