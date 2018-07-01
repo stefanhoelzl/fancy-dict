@@ -104,7 +104,7 @@ class FancyDict(dict):
         """
         return self._annotations.get(key, default)
 
-    def filter(self, filter_method):
+    def filter(self, filter_method, recursive=False, flat=False):
         """Returns a filtered FancyDict
 
         filter_method must be a method with two parameters.
@@ -113,12 +113,24 @@ class FancyDict(dict):
         the key/value pair is added to the filtered dict.
 
         Args:
-            ffilter_method: determines if key/value pair gets into return
+            filter_method: determines if key/value pair gets into return
+            recursive: searches recursive into sub dicts
+            flat: if recursive, flattens the result
 
         Returns:
             FancyDict with filtered content
         """
-        pass
+        result = FancyDict()
+        for key, value in self.items():
+            if isinstance(value, FancyDict) and recursive:
+                if flat:
+                    result.update(value.filter(filter_method,
+                                               recursive=True, flat=True))
+                else:
+                    result[key] = value.filter(filter_method, recursive=True)
+            elif filter_method(key, value):
+                result[key] = value
+        return result
 
     def update(self, __dct=None, **kwargs):
         """Updates the data using MergeMethods and Annotations
