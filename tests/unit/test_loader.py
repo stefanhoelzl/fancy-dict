@@ -1,10 +1,11 @@
 import os
+import json
+from unittest import mock
 from pathlib import Path
 from contextlib import contextmanager
-from io import StringIO
+from io import StringIO, IOBase
 
 import pytest
-import json
 
 from fancy_dict.loader import CompositeLoader, FileLoader, DictLoader, \
     KeyAnnotationsConverter, HttpLoader, IoLoader
@@ -132,6 +133,10 @@ class TestFileLoader:
     def test_can_load_false_if_url(self):
         assert not FileLoader.can_load("http://www.test.de")
 
+    def test_can_load_false_if_os_error(self):
+        with mock.patch("pathlib.Path.exists", side_effect=OSError):
+            assert not FileLoader.can_load("os_error")
+
 
 class TestDictLoader:
     def test_load(self):
@@ -205,6 +210,13 @@ class TestCompositeLoader:
             loader = CompositeLoader(FancyDict, include_key="include")
             result = {"key": "value"}
             assert result == loader.load("file.yml")
+
+    def test_can_load(self, tmpdir):
+        with file_structure({"file.yml": {"a": 1}}, tmpdir):
+            assert CompositeLoader(FancyDict).can_load("file.yml")
+        assert CompositeLoader(FancyDict).can_load("http://www.file.com")
+        assert CompositeLoader(FancyDict).can_load({})
+        assert CompositeLoader(FancyDict).can_load(IOBase())
 
 
 class TestKeyAnnotationsConverter:
