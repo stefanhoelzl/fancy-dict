@@ -1,19 +1,17 @@
-"""Dictionary extended load/update/query features.
+"""Dictionary extended load/update/filter features.
 
 Loads data from different sources using Loaders.
 Updates data with customizeable MergeMethods.
 Queries data using Transformations.
 """
-
 from . import merger
 from .errors import NoMergeMethodApplies
-from .query import StringQueryBuilder, Query
 from .loader import CompositeLoader
 from .annotations import Annotations
 
 
 class FancyDict(dict):
-    """Extends dict by merging methods, querying and loading functionality.
+    """Extends dict by merge methods, filter and load functionality.
 
     Merging methods can define custom behavior how to merge certain values
     in the dict.
@@ -106,22 +104,21 @@ class FancyDict(dict):
         """
         return self._annotations.get(key, default)
 
-    def query(self, query, query_builder=StringQueryBuilder):
-        """Runs a query on the FancyDict
+    def filter(self, filter_method):
+        """Returns a filtered FancyDict
 
-        If query is not a Query object,
-        the query_builder is used to create a Query.
+        filter_method must be a method with two parameters.
+        filter_method returns True or False for a given pair of key/value.
+        If filter_method returns True,
+        the key/value pair is added to the filtered dict.
 
         Args:
-            query: query to run
-            query_builder: used to create a Query.
+            ffilter_method: determines if key/value pair gets into return
 
         Returns:
-            query results
+            FancyDict with filtered content
         """
-        if not isinstance(query, Query):
-            query = query_builder(query).build()
-        return query.apply(self)
+        pass
 
     def update(self, __dct=None, **kwargs):
         """Updates the data using MergeMethods and Annotations

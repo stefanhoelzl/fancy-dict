@@ -4,12 +4,12 @@
 [![Coverage Status](https://coveralls.io/repos/github/stefanhoelzl/fancy-dict/badge.svg?branch=master)](https://coveralls.io/github/stefanhoelzl/fancy-dict?branch=master)
 [![Test Status](https://raw.githubusercontent.com/stefanhoelzl/fancy-dict/ci-results/master/tests.png)](https://github.com/stefanhoelzl/fancy-dict/blob/ci-results/master/testresults.tap)
 
-**Extends python dictionaries with merging, loading and querying functions**
+**Extends python dictionaries with merge, load and filter functions**
 
 ## Key Features
 * Load data from various sources (dicts, Files, HTTP)
 * Customize the merging behavior on `update()`
-* Querying data from nested dictionaries
+* Filter data of dictionaries
 
 Currently only tested on Python 3.6
 
@@ -36,10 +36,6 @@ Basics
 # Other values in repo["owner"] are still present
 >>> repo["owner"]["html_url"]
 'https://github.com/stefanhoelzl'
-
-# Get nested values with query
->>> list(repo.query("owner.avatar_url"))
-['https://avatars0.githubusercontent.com/u/254659']
 
 ```
 Load and merge annotated yaml/json files.

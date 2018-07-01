@@ -208,7 +208,6 @@ class TestUpdateWithFancyDict:
         assert 1 == fancy_dict["key"]
 
 
-class TestQuery:
-    def test_query_string(self):
-        fancy_dict = FancyDict({"key": {"sub": 1}})
-        assert 1 == next(fancy_dict.query("key.sub"))
+class TestFilter:
+    def test_filter(self):
+        pass
