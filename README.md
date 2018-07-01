@@ -40,6 +40,7 @@ Basics
 # Get nested values with query
 >>> list(repo.query("owner.avatar_url"))
 ['https://avatars0.githubusercontent.com/u/254659']
+
 ```
 Load and merge annotated yaml/json files.
 ```python
@@ -53,16 +54,20 @@ Load and merge annotated yaml/json files.
 
 # write settings defaults
 >>> with open("inc/base.yml", "w+") as base_file:
->>>     base_file.write('{"counter[add]": 0, "settings": {"skip": True}}')
+...     base_file.write('{"counter[add]": 0, "settings": {"skip": True}}')
+47
 
 # write custom settings
 >>> with open("config.yml", "w+") as config_file:
->>>     config_file.write('{"include": ["base.yml"], "counter": 1, "settings": {"+skip": False, "?merge": True}}')
+...     config_file.write('{"include": ["base.yml"], "counter": 1, "settings": {"+skip": False, "?merge": True}}')
+85
 
 # merge custom and default settings
 >>> FancyDict.load("config.yml", include_paths=("inc",), include_key="include", annotations_decoder=KeyAnnotationsConverter)
 {'counter': 1, 'settings': {'skip': True}}
+
 ```
+
 Annotate keys to control updating behavior
 ```python
 >>> from fancy_dict import FancyDict
@@ -71,6 +76,7 @@ Annotate keys to control updating behavior
 
 # Set a custom merge method (defines how old and new value get merged)
 >>> annotated_dict = FancyDict({"counter": 0})
+
 # sets an annotation that the key "counter" should be updated by adding old and new value
 >>> annotated_dict.annotate("counter", merge_method=add)
 >>> annotated_dict.update({"counter": 1})
@@ -85,6 +91,7 @@ Annotate keys to control updating behavior
 >>> annotated_dict.update({"counter": 1})
 >>> annotated_dict["counter"]
 2
+
 # direct changes of this key are still possible
 >>> annotated_dict["counter"] = 0
 >>> annotated_dict["counter"]
@@ -95,10 +102,11 @@ Annotate keys to control updating behavior
 >>> annotated_dict.update({"not_existing": False})
 >>> annotated_dict.keys()
 dict_keys(['counter'])
+
 >>> annotated_dict["not_existing"] = False
 >>> annotated_dict.update({"not_existing": True})
->>> annotated_dict["not_existing"]
-True  # value was updated, because it was existing before
+>>> annotated_dict["not_existing"]  # value was updated, because it was existing before
+True
 
 # same for if_not_existing condition
 >>> annotated_dict.annotate("existing", condition=if_not_existing)
@@ -110,6 +118,7 @@ False
 >>> annotated_dict.update({"existing": True})
 >>> annotated_dict["existing"]
 True
+
 ```
 ## Development status
 Alpha
