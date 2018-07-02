@@ -148,20 +148,20 @@ class FancyDict(dict):
         They are evaluated in the following order.
         1. When a key is finalized, the value never gets updated.
         2. The condition annotation based on old and new value gets evaluated
-            * the condition of the destination is used
-            * if there is none, the condition of the source is used
-            * if there is none, the default condition is used
-            * if the condition is false, the value gets not updated
+        * the condition of the destination is used
+        * if there is none, the condition of the source is used
+        * if there is none, the default condition is used
+        * if the condition is false, the value gets not updated
 
         If the value can be updated, the merge method is looked up the
         in the following order:
         1. merge method annotated in source
         2. merge method annotated in destination
         3. global merge methods
-            * first the source merge methods are evaluated
-            * second the destination merge methods are evaluated
-            * the first merge method which applies to the old and new value
-              is used.
+        * first the source merge methods are evaluated
+        * second the destination merge methods are evaluated
+        * the first merge method which applies to the old and new value
+        is used.
 
         Args:
             __dct: source dict to merge into destination (self)
