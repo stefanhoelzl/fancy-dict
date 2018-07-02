@@ -1,6 +1,7 @@
 # fancy-dict
 
 [![Build Status](https://travis-ci.org/stefanhoelzl/fancy-dict.svg?branch=master)](https://travis-ci.org/stefanhoelzl/fancy-dict)
+[![Build Status](https://fancy-dict.readthedocs.io/en/latest/?badge=latest)](http://fancy-dict.readthedocs.io/)
 [![Coverage Status](https://coveralls.io/repos/github/stefanhoelzl/fancy-dict/badge.svg?branch=master)](https://coveralls.io/github/stefanhoelzl/fancy-dict?branch=master)
 [![Test Status](https://raw.githubusercontent.com/stefanhoelzl/fancy-dict/ci-results/master/tests.png)](https://github.com/stefanhoelzl/fancy-dict/blob/ci-results/master/testresults.tap)
 
@@ -122,10 +123,11 @@ Alpha
 working towards the first release and better documentation!
 
 ## Documentation
-in progess...
+http://fancy-dict.readthedocs.io/
 
 ## Contribution
 * **There is a bug?** Write an [Issue](https://github.com/stefanhoelzl/fancy-dict/issues)
+* **Feedback or Questions?** Write an [Issue](https://github.com/stefanhoelzl/fancy-dict/issues)
 * **You like it?** Great!! Spread the news :)
 
 ### Submit changes
@@ -157,4 +159,4 @@ $ make clean # cleans the repository
 Create a pull request!
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/stefanhoelzl/fancy-dict/blob/master/LICENSE) file for details
