@@ -37,6 +37,13 @@ release.build:
 release.upload: release.build
 	twine upload ${OPTS} dist/*
 
+.PHONY: depoly.results
+deploy.results:
+	python deploy-results.py
+
+.PHONY: deploy
+deploy: deploy.results
+
 .PHONY: env.install
 env.install:
 	python -m pip install -r requirements.txt
