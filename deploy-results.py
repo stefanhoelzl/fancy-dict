@@ -36,8 +36,8 @@ class TestStatusBadge(Badge):
 
 
 TravisCI(
-    repo=GitHub('stefanhoelzl', 'fancy-dict', os.environ.get('GITHUB_TOKEN')),
-    branch='ci-results',
+    repo=GitHub('stefanhoelzl', 'ci-results', os.environ.get('GITHUB_TOKEN')),
+    branch='fancy-dict',
     results=[
         File('testresults.tap'),
         Directory('covhtml'),
