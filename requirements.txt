@@ -1,5 +1,5 @@
 # fancy-dict
-PyYAML==3.12
+PyYAML==5.4
 
 # packaging
 twine==1.11.0
